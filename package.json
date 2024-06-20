@@ -1,0 +1,49 @@
+{
+    "name": "node-express-mongodb",
+    "version": "1.0.0",
+    "description": "Node.js Restful CRUD API with Node.js, Express and MongoDB",
+    "main": "server.js",
+    "scripts": {
+        "start": "node app.js",
+        "dev": "nodemon app.js",
+        "test": "echo \"no test specified\""
+    },
+    "keywords": [
+        "nodejs",
+        "express",
+        "rest",
+        "api",
+        "mongodb"
+    ],
+    "author": "bezkoder",
+    "license": "ISC",
+    "dependencies": {
+        "@azure/storage-blob": "^12.17.0",
+        "axios": "^1.6.6",
+        "bcryptjs": "^2.4.3",
+        "cookie-parser": "^1.4.6",
+        "cors": "^2.8.5",
+        "crypto": "^1.0.1",
+        "date-fns": "^2.30.0",
+        "dotenv": "^16.3.1",
+        "exceljs": "^4.4.0",
+        "express": "^4.18.2",
+        "express-session": "^1.17.3",
+        "file-type": "^19.0.0",
+        "formidable": "^3.5.1",
+        "joi": "^17.9.2",
+        "jsonwebtoken": "^9.0.1",
+        "lodash": "^4.17.21",
+        "mongoose": "^6.12.3",
+        "multer": "^1.4.5-lts.1",
+        "node-cron": "^3.0.2",
+        "node-schedule": "^2.1.1",
+        "nodemailer": "^6.9.4",
+        "pdfkit": "^0.14.0",
+        "shelljs": "^0.8.5",
+        "streamifier": "^0.1.1"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.22"
+    }
+}

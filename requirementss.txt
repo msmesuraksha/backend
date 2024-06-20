@@ -1,0 +1,70 @@
+Total members
+
+
+latest transaction table fields:
+invoice nu 
+buyer name 
+seller name
+date of invoice
+amount
+payment status(disputed , paid)
+view details
+admin actions( approve, in process, referred to senior team)
+
+in members page: 
+show users list who have signed up in user portal
+show all company list page -- it should have option to activate/deactivate a  company
+
+one time password feature for admins and users
+show employees(admin) list with fields:
+
+it should also has option to send a reset password mail 
+
+
+user panel
+
+in company search has all companies of all users
+
+company name
+total amount due
+due from (maximise last bill due since)
+company credti rating
+
+
+queries:
+ - in debtor do we need to display all the companies list ?
+because if we don't give this option same debtor will be added by multiple creditors and duplicate comapnies we will see in our database
+
+invoice status :
+pending
+paid
+partially paid
+
+
+change view de
+
+
+ - create an API to show all invoices of a customer
+ - create a API to default selected invoice  of a customer
+ - create an API to create defaulter of customers which are not having invices in our system..
+it should have invoice no, 4 type of documents , date of invoice , amount due fields
+ - Request an edit option in defaulted invoice at owners end, in case wrong person get defaulted .. 
+after request an edit request will be shown to L1 and from there if Admin approves it then defaulter request will be deleted
+ - we should have metrics generated for no of wrong defaulters raised, and we should have a mechanism to disable the account
+
+
+
+ command to export DB for a particular collection(table)
+
+ mongoexport --uri mongodb+srv://root:root123@bafna.sei7ii5.mongodb.net/test --type json --out backup.json
+
+ mongoimport --uri mongodb+srv://root:root123@bafna.sei7ii5.mongodb.net/test --collection test --type json --file backup.json
+
+command to export complete DB
+
+mongodump --uri mongodb+srv://root:root123@bafna.sei7ii5.mongodb.net/test
+mongorestore --uri mongodb+srv://root:root123@bafna.sei7ii5.mongodb.net/test
+
+
+
+
