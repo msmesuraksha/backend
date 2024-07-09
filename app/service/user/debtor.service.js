@@ -9,10 +9,10 @@ const DebtorRating = db.debtorRating;
 const config = process.env;
 
 
-exports.addDebtor = function(debtorDetails) {
+exports.addDebtor = function (debtorDetails) {
     let joinedOn = new Date();
     joinedOn = new Date(joinedOn.getFullYear(), joinedOn.getMonth(), joinedOn.getDate());
-    
+
     return Debtor.create({
         companyName: debtorDetails.companyName,
         gstin: debtorDetails.gstin,
@@ -36,7 +36,7 @@ exports.addDebtor = function(debtorDetails) {
     });
 };
 
-exports.addDebtorRating = function(rating, defaulterEntryId) {
+exports.addDebtorRating = function (rating, defaulterEntryId) {
     let ratingObj = {
         debtorId: rating.debtorId,
         defaulterEntryId: defaulterEntryId,
@@ -48,21 +48,22 @@ exports.addDebtorRating = function(rating, defaulterEntryId) {
 };
 
 
-exports.getExistingDebtorRating = function(ratingFilter) {
+exports.getExistingDebtorRating = function (ratingFilter) {
     return DebtorRating.find(ratingFilter);
 };
 
-exports.updateDebtorCompanyNameBasedOnGSTIN = function(GSTIN, companyName){
-    return Debtor.updateMany({"gstin": GSTIN}, {"companyName": companyName});
+exports.updateDebtorCompanyNameBasedOnGSTIN = function (GSTIN, companyName) {
+    return Debtor.updateMany({ "gstin": GSTIN }, { "companyName": companyName });
 };
 
 
-exports.updateExistingDebtorDetailsUsingRegisteredCompanyDetails = function(GSTIN, companyDetails){
+exports.updateExistingDebtorDetailsUsingRegisteredCompanyDetails = function (GSTIN, companyDetails) {
 
-    return Debtor.updateMany({"gstin": GSTIN}, { $set:{
+    return Debtor.updateMany({ "gstin": GSTIN }, {
+        $set: {
             companyName: companyDetails.companyName,
             companyPan: companyDetails.companyPan,
-        
+
             customerEmail: companyDetails.emailId,
             customerMobile: companyDetails.phoneNumber,
             secCustomerMobile: companyDetails.secPhoneNumber,
@@ -96,25 +97,26 @@ function buildDebtorQuery(companyDetails) {
 }
 
 
-exports.companySearch = function(companyDetails) {
+exports.companySearch = function (companyDetails) {
     condition = buildDebtorQuery(companyDetails)
-        return Debtor.find(condition);
+    return Debtor.find(condition);
 };
-  
-exports.addDebtorRatingToDebtor = function(debtorId, rating) {
-    
+
+exports.addDebtorRatingToDebtor = function (debtorId, rating) {
+
     return Debtor.findByIdAndUpdate(
         debtorId,
-      { $push: {   
+        {
+            $push: {
                 ratings: rating._id
-            } 
+            }
         },
-      { new: true, useFindAndModify: false }
+        { new: true, useFindAndModify: false }
     );
 
 };
 
-exports.findAllDateWise = function(filters){
+exports.findAllDateWise = function (filters) {
 
     let dateFilter = {};
 
@@ -146,8 +148,8 @@ exports.findAllDateWise = function(filters){
     return Debtor.find(dateFilter);
 };
 
-exports.getDebtorAndCompanyOwnerEmails = async function(GSTIN){
-    
+exports.getDebtorAndCompanyOwnerEmails = async function (GSTIN) {
+
     const debtors = await Debtor.find({ gstin: GSTIN }).select("customerEmail");
     const debtorEmails = debtors.map(debtor => debtor.customerEmail);
 
@@ -156,7 +158,7 @@ exports.getDebtorAndCompanyOwnerEmails = async function(GSTIN){
         // match: { role: 'OWNER' },
         select: 'emailId'
     });
-    
+
     const ownerEmails = company && company.companyOwner ? [company.companyOwner.emailId] : [];
 
     const ccEmails = [...debtorEmails, ...ownerEmails];
@@ -165,15 +167,28 @@ exports.getDebtorAndCompanyOwnerEmails = async function(GSTIN){
 }
 
 
-exports.getCompanyOwnerEmail = async function(GSTIN){
-    
+exports.getCompanyOwnerEmail = async function (GSTIN) {
+
     const company = await Companies.findOne({ gstin: GSTIN }).populate({
         path: 'companyOwner',
         // match: { role: 'OWNER' },
         select: 'emailId'
     });
-    
+
     const ownerEmail = company && company.companyOwner ? company.companyOwner.emailId : "";
 
     return ownerEmail;
+}
+
+exports.getCompanyOwnerMobNumber = async function (GSTIN) {
+
+    const company = await Companies.findOne({ gstin: GSTIN }).populate({
+        path: 'companyOwner',
+        // match: { role: 'OWNER' },
+        select: 'phoneNumber'
+    });
+
+    const ownerMobNumber = company && company.companyOwner ? company.companyOwner.phoneNumber : "";
+
+    return ownerMobNumber;
 }

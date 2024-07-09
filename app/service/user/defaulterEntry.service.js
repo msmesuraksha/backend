@@ -55,17 +55,24 @@ exports.createEntry = async function (defaulterEntryList, debtor, status, totalA
   let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(debtor.gstin);
   mailObj.cc = ccEmails;
 
+  let buyerWAPMessage = await mailController.getMailTemplate("DEFAULTER_ENTRY_CREATE_BUYER", replacements)
+
   // Seller Email send
 
   let replacements2 = [];
   replacements2.push({ target: "alertMessage", value: "Invoices have been marked default, kindly check." })
   replacements2.push({ target: "BUYER_NAME", value: debtor.companyName })
   replacements2.push({ target: "SELLER_NAME", value: companyDetails.companyName })
-  mailObj2 = await mailController.getMailTemplate("DEFAULTER_ENTRY_CREATE_SELLER", replacements)
+  mailObj2 = await mailController.getMailTemplate("DEFAULTER_ENTRY_CREATE_SELLER", replacements2)
 
   mailObj2.to = companyDetails.emailId
   let ccEmails2 = await debtorService.getCompanyOwnerEmail(companyDetails.gstin);
   mailObj2.cc = ccEmails2;
+
+  let sellerWAPMessage = await mailController.getMailTemplate("DEFAULTER_ENTRY_CREATE_SELLER", replacements2)
+
+
+  let sellermobile = await debtorService.getCompanyOwnerMobNumber(companyDetails.gstin);
 
 
   if (status != "DRAFT") {
