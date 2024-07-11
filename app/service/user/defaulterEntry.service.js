@@ -22,6 +22,7 @@ const config = process.env;
 const Joi = require("joi");
 const crypto = require("crypto");
 const constants = require('../../constants/userConstants');
+const whatsappUtility = require('../../util/whatsappUtil')
 
 
 exports.defaultInvoiceById = function (defaulterEntryId) {
@@ -76,6 +77,8 @@ exports.createEntry = async function (defaulterEntryList, debtor, status, totalA
 
 
   if (status != "DRAFT") {
+    whatsappUtility.sendWhatsappMessage(debtor.customerMobile, buyerWAPMessage)
+    whatsappUtility.sendWhatsappMessage(sellermobile, sellerWAPMessage)
     mailUtility.sendMail(mailObj)
     mailUtility.sendMail(mailObj2)
   }

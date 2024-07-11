@@ -1,5 +1,5 @@
 
-exports.sendWhatsappMessage = async () => {
+exports.sendWhatsappMessage = async (number, message) => {
 
     const accountSid = process.env.WHATSAPP_SID;
     const authToken = process.env.WHATSAPP_TOKEN;
@@ -8,9 +8,9 @@ exports.sendWhatsappMessage = async () => {
     return new Promise((resolve, reject) => {
         client.messages
             .create({
-                body: 'Your appointment is coming up on July 21 at 3PM',
+                body: `${message}`,
                 from: 'whatsapp:+14155238886',
-                to: 'whatsapp:+919820924375'
+                to: `whatsapp:+91${number}`
             })
             .then(message => {
                 console.log(message.sid)
