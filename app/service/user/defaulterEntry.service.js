@@ -67,6 +67,7 @@ exports.createEntry = async function (defaulterEntryList, debtor, status, totalA
   mailObj2 = await mailController.getMailTemplate("DEFAULTER_ENTRY_CREATE_SELLER", replacements2)
 
   mailObj2.to = companyDetails.emailId
+  mailObj2.subject = `Status of Your Complaint Against ${debtor.companyName} - Buyer May Be Defaulter`
   let ccEmails2 = await debtorService.getCompanyOwnerEmail(companyDetails.gstin);
   mailObj2.cc = ccEmails2;
 
