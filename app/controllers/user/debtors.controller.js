@@ -19,8 +19,8 @@ const subscriptionService = service.subscription;
 exports.add = async (req, res) => {
 
     try {
-        if(req.token.userDetails.isActiveAccount == "INACTIVE"){
-            return res.status(200).json({message: 'Not Authorised to add debtor', success: true, response: ""});
+        if (req.token.userDetails.isActiveAccount == "INACTIVE") {
+            return res.status(200).json({ message: 'Not Authorised to add debtor', success: true, response: "" });
         }
         const companyId = req.token.companyDetails.id;
         let condition = { creditorCompanyId: companyId, gstin: req.body.gstin };
@@ -91,15 +91,15 @@ exports.getDebtorDetails = async (req, res) => {
         // let condition = { creditorCompanyId: id };
         let data = await Debtors.findOne(filter)
         let companydetails = await Companies.findOne(filter).populate("companyOwner")
-        if(companydetails){
+        if (companydetails) {
             data = data.toJSON()
-            data.companyName= companydetails.companyName
+            data.companyName = companydetails.companyName
             data.city = companydetails.city
             data.state = companydetails.state
             data.address1 = companydetails.address1
             data.address2 = companydetails.address2
             data.zipcode = companydetails.zipcode
-            data.firstname = companydetails.companyOwner?.name ? companydetails.companyOwner?.name: data.firstname
+            data.firstname = companydetails.companyOwner?.name ? companydetails.companyOwner?.name : data.firstname
             data.customerEmail = companydetails.companyOwner?.emailId ? companydetails.companyOwner?.emailId : data.customerEmail
             data.customerMobile = companydetails.companyOwner?.phoneNumber ? companydetails.companyOwner?.phoneNumber : data.customerMobile
             data.secCustomerMobile = companydetails.companyOwner?.secPhoneNumber ? companydetails.companyOwner?.secPhoneNumber : data.secCustomerMobile
@@ -140,7 +140,7 @@ exports.getCreditors = async (req, res) => {
 
 exports.getAllDebtorsByCompanyId = async (req, res) => {
     try {
-        const dbtrs = await Debtors.find({ creditorCompanyId: req.token.companyDetails.id }).populate({path: 'ratings', populate: ['question']});
+        const dbtrs = await Debtors.find({ creditorCompanyId: req.token.companyDetails.id }).populate({ path: 'ratings', populate: ['question'] });
         res.status(200).json({ message: 'Debtors list fetched for company.', success: true, response: dbtrs });
     } catch (error) {
         console.log(error)
@@ -229,7 +229,9 @@ exports.companySearch = async (req, res) => {
     try {
         // find in subscription by userId and isActive  => get subscription Id
         // find Rem Quota mapp . limit remaining using sId
-        const updateRemQuota = await subscriptionService.updateRemQuotaForAPI(req.token.userDetails, req.originalUrl);
+        // const updateRemQuota = await subscriptionService.updateRemQuotaForAPI(req.token.userDetails, req.originalUrl);
+
+        const updateRemQuota = true
 
         if (updateRemQuota) {
 
