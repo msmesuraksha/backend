@@ -24,6 +24,8 @@ module.exports = app => {
     router.post("/forgetPassword", user.forgetPassword);
     router.post("/password-reset/:userId/:token", user.forgetPasswordLink);
 
+    router.patch("/userProfileUpdate", user.updateUserProfile)
+
 
     //Temporary APis
     router.post("/delete", user.deleteUser);
