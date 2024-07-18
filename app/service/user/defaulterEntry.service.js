@@ -78,8 +78,8 @@ exports.createEntry = async function (defaulterEntryList, debtor, status, totalA
 
 
   if (status != "DRAFT") {
-    whatsappUtility.sendWhatsappMessage(debtor.customerMobile, buyerWAPMessage)
-    whatsappUtility.sendWhatsappMessage(sellermobile, sellerWAPMessage)
+    /*     whatsappUtility.sendWhatsappMessage(debtor.customerMobile, buyerWAPMessage)
+        whatsappUtility.sendWhatsappMessage(sellermobile, sellerWAPMessage) */
     mailUtility.sendMail(mailObj)
     mailUtility.sendMail(mailObj2)
   }
