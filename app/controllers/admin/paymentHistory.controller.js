@@ -664,6 +664,7 @@ exports.approveOrRejectPayment = async (req, res) => {
                 //  seller 
 
                 let replacementsSeller = [];
+                replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
                 replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
                 let mailObjSeller = await mailController.getMailTemplate("COMPLAINT_APPROVED_SELLER", replacementsSeller)
 
@@ -733,6 +734,7 @@ exports.approveOrRejectPayment = async (req, res) => {
                     //  seller 
 
                     let replacementsSeller = [];
+                    replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
                     replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
                     let mailObjSeller = await mailController.getMailTemplate("BUYER_MAY_BE_A_DEFAULTER_SELLER", replacementsSeller)
 
@@ -746,6 +748,7 @@ exports.approveOrRejectPayment = async (req, res) => {
                     let replacements = [];
                     replacements.push({ target: "PAYMENT_STATUS", value: mapStatus(req.body.status) })
                     replacements.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
+                    replacements.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
                     mailObj = await mailController.getMailTemplate("PAYMENT_STATUS_CHANGED_BUYER", replacements)
 
                     mailObj.to = pHistory.defaulterEntry.debtor.customerEmail;
@@ -757,6 +760,7 @@ exports.approveOrRejectPayment = async (req, res) => {
 
                     let replacementsSeller = [];
                     replacementsSeller.push({ target: "PAYMENT_STATUS", value: mapStatus(req.body.status) })
+                    replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
                     replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
                     let mailObjSeller = await mailController.getMailTemplate("PAYMENT_STATUS_CHANGED_SELLER", replacementsSeller)
 
