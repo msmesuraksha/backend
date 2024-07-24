@@ -292,7 +292,7 @@ exports.initiatePaymentVerification = async (req, res) => {
             //         }
             //     }
             // }
-            let logStamp = { timeStamp: new Date().toISOString(), message: "Payment recorded by Buyer", remarks: req.body.debtorRemarks };
+            let logStamp = { timeStamp: new Date().toISOString(), message: "Complaint disputed", remarks: req.body.debtorRemarks };
             const log = await Logs.create({
                 pmtHistoryId: pmtHistory._id,
                 logs: [logStamp]
