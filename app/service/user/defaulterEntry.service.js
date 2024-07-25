@@ -93,6 +93,7 @@ exports.updateDefaulterEntry = async function (reqBody, creditorCompanyDetails) 
   const deftEnt = await defaulterEntry.findByIdAndUpdate(reqBody.defaulterEntryId, {
     // creditorCompanyId: reqBody.creditorCompanyId,
     status: reqBody.status,
+    latestStatus: reqBody.status,
   }).populate("invoices");
   deftEnt.totalAmount = 0;
   let updatedInvoicesList = [];
