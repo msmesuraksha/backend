@@ -739,6 +739,7 @@ exports.approveOrRejectPayment = async (req, res) => {
                     let mailObjSeller = await mailController.getMailTemplate("BUYER_MAY_BE_A_DEFAULTER_SELLER", replacementsSeller)
 
                     mailObjSeller.to = pHistory.defaulterEntry.creditorCompanyId.emailId;
+                    mailObjSeller.subject = `Status of Your Complaint Against ${pHistory.defaulterEntry.debtor.companyName} - Buyer May Be Defaulter`
                     let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(pHistory.defaulterEntry.creditorCompanyId.gstin);
                     mailObjSeller.cc = ccEmailsSeller;
 
@@ -836,6 +837,7 @@ exports.askForSupportingDocument = async (req, res) => {
                     linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": userDetailsId, "type": "DEBTOR" }, "CUSTOM");
                     commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "DEBTOR", "linkToken": linkToken });
                     const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=DEBTOR`;
+                    replacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
                     replacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
                     replacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForDebtor })
 
@@ -869,7 +871,7 @@ exports.askForSupportingDocument = async (req, res) => {
                         mailObj2.cc = ccEmails;
                         mailObj2.to = transaction.defaulterEntry.debtor.customerEmail
 
-                        mailUtility.sendEmailWithAttachments(mailObj2, debtorDocumentIds);
+                        //  mailUtility.sendEmailWithAttachments(mailObj2, debtorDocumentIds);
                     } else {
                         mailObj.to = transaction.defaulterEntry.debtor.customerEmail
                     }
@@ -893,6 +895,7 @@ exports.askForSupportingDocument = async (req, res) => {
                     linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": credUserDetailsId, "type": "CREDITOR" }, "CUSTOM");
                     commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "CREDITOR", "linkToken": linkToken });
                     const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=CREDITOR`;
+                    creditorReplacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
                     creditorReplacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
                     creditorReplacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForCreditor })
                     //TODO Bug: amount will be zero in case of DISPUTE_TYPE1
