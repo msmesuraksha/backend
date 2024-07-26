@@ -22,10 +22,13 @@ exports.getMailSubjectTemplate = async (mailType, replacements) => {
     try {
         template = await MailTemplates.findOne({ mailType: mailType });
 
-        for (i = 0; i < replacements.length; i++) {
-            console.log(replacements[i])
-            template.subject = template.subject.replaceAll("{{" + replacements[i].target + "}}", replacements[i].value)
-        }
+        /*  for (i = 0; i < replacements.length; i++) {
+             console.log(replacements[i])
+             template = template.subject.replaceAll("{{" + replacements[i].target + "}}", replacements[i].value)
+             
+         } */
+
+        template = template.subject.replaceAll("{{" + replacements[0].target + "}}", replacements[0].value)
     } catch (err) {
         console.log(err)
     }
