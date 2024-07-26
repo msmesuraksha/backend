@@ -737,9 +737,10 @@ exports.approveOrRejectPayment = async (req, res) => {
                     replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
                     replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
                     let mailObjSeller = await mailController.getMailTemplate("BUYER_MAY_BE_A_DEFAULTER_SELLER", replacementsSeller)
+                    mailObjSeller = await mailController.getMailSubjectTemplate("BUYER_MAY_BE_A_DEFAULTER_SELLER", replacementsSeller)
 
                     mailObjSeller.to = pHistory.defaulterEntry.creditorCompanyId.emailId;
-                    mailObjSeller.subject = `Status of Your Complaint Against ${pHistory.defaulterEntry.debtor.companyName} - Buyer May Be Defaulter`
+                    //  mailObjSeller.subject = `Status of Your Complaint Against ${pHistory.defaulterEntry.debtor.companyName} - Buyer May Be Defaulter`
                     let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(pHistory.defaulterEntry.creditorCompanyId.gstin);
                     mailObjSeller.cc = ccEmailsSeller;
 
