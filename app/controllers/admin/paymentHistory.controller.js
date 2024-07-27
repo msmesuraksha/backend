@@ -606,17 +606,21 @@ exports.approveOrRejectPayment = async (req, res) => {
                     // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
                     let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to COMPLAINT APPROVED by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
 
-                    if (existingLog) {
-                        // If the document exists, update the logs array
-                        existingLog.logs.push(logMsg);
-                        await existingLog.save();
-                    } else {
-                        // create log
-                        let log = await Logs.create({
-                            pmtHistoryId: paymentId,  // pmtHistory id
-                            logs: [logMsg]
-                        });
+                    if (i == 0) {
+                        if (existingLog) {
+                            // If the document exists, update the logs array
+                            existingLog.logs.push(logMsg);
+                            await existingLog.save();
+                        } else {
+                            // create log
+                            let log = await Logs.create({
+                                pmtHistoryId: paymentId,  // pmtHistory id
+                                logs: [logMsg]
+                            });
+                        }
                     }
+
+
                     paymentHistoriesChanged.push(result);
                 }
 
@@ -675,17 +679,22 @@ exports.approveOrRejectPayment = async (req, res) => {
 
                     // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
                     let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to " + (currentStatus) + " by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
-                    if (existingLog) {
-                        // If the document exists, update the logs array
-                        existingLog.logs.push(logMsg);
-                        await existingLog.save();
-                    } else {
-                        // create log
-                        let log = await Logs.create({
-                            pmtHistoryId: paymentId,  // pmtHistory id
-                            logs: [logMsg]
-                        });
+
+                    if (i == 0) {
+                        if (existingLog) {
+                            // If the document exists, update the logs array
+                            existingLog.logs.push(logMsg);
+                            await existingLog.save();
+                        } else {
+                            // create log
+                            let log = await Logs.create({
+                                pmtHistoryId: paymentId,  // pmtHistory id
+                                logs: [logMsg]
+                            });
+                        }
+
                     }
+
                     paymentHistoriesChanged.push(result);
                 }
 
