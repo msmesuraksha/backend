@@ -972,6 +972,12 @@ exports.getDocumentsRequiredFromPaymentId = async (req, res) => {
     try {
         const token = jwtUtil.verifyCustomToken(req.body.token);
         console.log(token);
+        if (req.body.token) {
+            let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "paymentId": token.tokenDetails.paymentId, "userType": token.tokenDetails.type });
+            if (!dbToken) {
+                return res.status(403).json({ message: 'Token is not valid or has expired.', success: false, response: "" });
+            }
+        }
         if (token) {
             const _paymentId = token.tokenDetails.paymentId;
             const _userType = token.tokenDetails.type;
