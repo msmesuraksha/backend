@@ -733,7 +733,8 @@ exports.uploadSupportingDocuments = async (req, res) => {
       }
     }
     if (!(pHistory.isDocumentsRequiredByCreditor && pHistory.isDocumentsRequiredByDebtor)) {
-      pHistory.status = constants.PAYMENT_HISTORY_STATUS.PENDING
+      pHistory.status = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
+      pHistory.latestStatus = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
       pHistory.pendingWith = pHistory.previousPendingWith
 
       let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
