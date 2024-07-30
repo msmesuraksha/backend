@@ -732,7 +732,7 @@ exports.uploadSupportingDocuments = async (req, res) => {
         await commonService.tokenService.deleteTokenFromDb({ "paymentId": token.tokenDetails.paymentId, "userType": "CREDITOR" });
       }
     }
-    if (!(pHistory.isDocumentsRequiredByCreditor && pHistory.isDocumentsRequiredByDebtor)) {
+    if (pHistory.isDocumentsRequiredByCreditor == false && pHistory.isDocumentsRequiredByDebtor == false) {
       pHistory.status = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
       pHistory.latestStatus = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
       pHistory.pendingWith = pHistory.previousPendingWith
