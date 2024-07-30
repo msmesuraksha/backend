@@ -737,6 +737,12 @@ exports.uploadSupportingDocuments = async (req, res) => {
       pHistory.latestStatus = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
       pHistory.pendingWith = pHistory.previousPendingWith
 
+      const deftEnt = await DefaulterEntry.findByIdAndUpdate(pHistory.defaulterEntryId, {
+        latestStatus: constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW,
+      }).populate("invoices");
+
+
+
       let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
       // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case Pending with L1";
       let logMsg = { timeStamp: new Date().toISOString(), message: "Case Pending with L1" };
