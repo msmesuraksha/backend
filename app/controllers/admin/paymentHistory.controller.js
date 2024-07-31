@@ -942,18 +942,21 @@ exports.askForSupportingDocument = async (req, res) => {
                 }
 
                 // logging
-                if (existingLog) {
-                    // If the document exists, update the logs array
-                    existingLog.logs.push(...logMsg);
-                    await existingLog.save();
+                if (i == 0) {
+                    if (existingLog) {
+                        // If the document exists, update the logs array
+                        existingLog.logs.push(...logMsg);
+                        await existingLog.save();
+                    }
+                    else {
+                        // create log
+                        let log = await Logs.create({
+                            pmtHistoryId: paymentId,  // pmtHistory id
+                            logs: logMsg
+                        });
+                    }
                 }
-                else {
-                    // create log
-                    let log = await Logs.create({
-                        pmtHistoryId: paymentId,  // pmtHistory id
-                        logs: logMsg
-                    });
-                }
+
 
             }
             return res.status(200).send({ message: "Transaction has now been moved to Document Needed Queue and mail is sent to Creditor and Debtor", success: true, response: transactions });
