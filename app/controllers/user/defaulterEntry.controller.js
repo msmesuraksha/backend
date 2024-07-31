@@ -187,7 +187,14 @@ exports.getAllInvoicesSentToMe = async (req, res) => {
         let defaulterEntries = [];
         for (const element of dbtrs) {
 
-            let statusFilter = { status: { $ne: constants.INVOICE_STATUS.DRAFT } }
+            /*   let statusFilter = { status: { $ne: constants.INVOICE_STATUS.DRAFT } } */
+            const statusFilter = {
+                $or: [
+                    {
+                        latestStatus: { $nin: [constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED, constants.INVOICE_STATUS.DRAFT] }
+                    },
+                ],
+            };
             let entry = await defaulterEntryService.getCompleteDefaultEntryData({ debtor: element }, statusFilter);
 
             entry = entry.map(item => {
@@ -237,8 +244,16 @@ exports.getAllInvoicesRaisedByMe = async (req, res) => {
         if (req.token.userDetails.isActiveAccount == "INACTIVE") {
             return res.status(200).json({ message: 'Not Authorised to raise any complaint', success: true, response: "" });
         }
+
+        const additionalFilters = {
+            $or: [
+                {
+                    latestStatus: { $nin: [constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED] }
+                },
+            ],
+        };
         // const invoices = await defaulterEntryService.getCompleteDefaultEntryData({creditorCompanyId:req.token.companyDetails.id}).populate("debtor debtor.ratings purchaseOrderDocument challanDocument invoiceDocument transportationDocument");
-        let allEntries = await defaulterEntryService.getCompleteDefaultEntryData({ creditorCompanyId: req.token.companyDetails.id }, {})
+        let allEntries = await defaulterEntryService.getCompleteDefaultEntryData({ creditorCompanyId: req.token.companyDetails.id }, additionalFilters)
         console.log(req.token.companyDetails.id)
 
         allEntries = allEntries.map(item => {
@@ -451,14 +466,32 @@ exports.deleteDefaulterEntryById = async (req, res) => {
         // Delete all ratings
         let deleteRatingByDefaulterEntryId = await DebtorRating.deleteMany({ defaulterEntryId: req.body.defaulterEntryId });
 
-        if (deftEntry?.invoices) {
-            for (let invoice of deftEntry?.invoices) {
-                await SendBillTransactions.findByIdAndDelete(invoice);
-            }
-        }
-        let deletePaymentHistories = await paymentHistoryService.deleteTransactionBasedOnFilter({ defaulterEntryId: req.body.defaulterEntryId });
+        // if (deftEntry?.invoices) {
+        //     for (let invoice of deftEntry?.invoices) {
+        //         await SendBillTransactions.findByIdAndDelete(invoice);
+        //     }
+        // }
+        // let deletePaymentHistories = await paymentHistoryService.deleteTransactionBasedOnFilter({ defaulterEntryId: req.body.defaulterEntryId });
 
-        await deftEntry?.delete();
+        // await deftEntry?.delete();
+
+
+        const pHistory = await PaymentHistory.findOne({ _id: req.body.paymentId }).populate(
+            [
+                // { path: 'defaulterEntry.debtor' },
+                { path: 'defaulterEntry', populate: ['invoices'] },
+                { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
+            ]);
+
+        pHistory.status = constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED
+
+        const deftEnt = await DefaulterEntry.findByIdAndUpdate(pHistory.defaulterEntryId, {
+            latestStatus: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED,
+        }).populate("invoices");
+
+        await pHistory.save();
+
+
         res.status(200).json({ message: 'Defaulter Entry and associated payment histories have been deleted.', success: true, response: deftEntry });
     } catch (error) {
         console.log(error)
