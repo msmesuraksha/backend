@@ -476,16 +476,20 @@ exports.deleteDefaulterEntryById = async (req, res) => {
         // await deftEntry?.delete();
 
 
-        const pHistory = await PaymentHistory.findOne({ _id: req.body.paymentId }).populate(
+        const pHistory = await PaymentHistory.findOne({ defaulterEntryId: req.body.defaulterEntryId }).populate(
             [
                 // { path: 'defaulterEntry.debtor' },
                 { path: 'defaulterEntry', populate: ['invoices'] },
                 { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
             ]);
 
-        pHistory.status = constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED
+        if (pHistory) {
+            pHistory.status = constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED
+        }
 
-        const deftEnt = await DefaulterEntry.findByIdAndUpdate(pHistory.defaulterEntryId, {
+
+
+        const deftEnt = await DefaulterEntry.findByIdAndUpdate(req.body.defaulterEntryId, {
             latestStatus: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED,
         }).populate("invoices");
 
