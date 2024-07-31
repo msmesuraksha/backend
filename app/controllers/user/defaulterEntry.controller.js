@@ -490,13 +490,15 @@ exports.deleteDefaulterEntryById = async (req, res) => {
 
 
         const deftEnt = await DefaulterEntry.findByIdAndUpdate(req.body.defaulterEntryId, {
+            status: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED,
             latestStatus: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED,
         }).populate("invoices");
 
-        await pHistory.save();
+        if (pHistory) {
+            await pHistory.save();
+        }
 
-
-        res.status(200).json({ message: 'Defaulter Entry and associated payment histories have been deleted.', success: true, response: deftEntry });
+        res.status(200).json({ message: 'Defaulter Entry and associated payment histories have been deleted.', success: true, response: deftEnt });
     } catch (error) {
         console.log(error)
         res
