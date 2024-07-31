@@ -490,7 +490,7 @@ exports.deleteDefaulterEntryById = async (req, res) => {
 
 
         const deftEnt = await DefaulterEntry.findByIdAndUpdate(req.body.defaulterEntryId, {
-            status: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED,
+            // status: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED,
             latestStatus: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED,
         }).populate("invoices");
 
