@@ -317,7 +317,7 @@ exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatu
                     status: { $in: [constants.PAYMENT_HISTORY_STATUS.APPROVED] }
                 },
                 {
-                    status: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED] }
+                    status: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
                 },
             ]
         };
@@ -329,7 +329,7 @@ exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatu
                     status: { $in: [constants.PAYMENT_HISTORY_STATUS.APPROVED] }
                 },
                 {
-                    status: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED] }
+                    status: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
                 },
                 { userSuspended: false }, { userSuspended: { $exists: false } }
             ],
