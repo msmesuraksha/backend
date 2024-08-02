@@ -1038,9 +1038,9 @@ exports.getAllDocumentsNeededTransactionsForLoggedInUser = async (req, res) => {
 
         let filters = {
             pendingWithAdminEmailId: req.token.adminDetails.emailId,
-            // status: {
-            //     $nin: [constants.PAYMENT_HISTORY_STATUS.REJECTED]
-            // }
+            status: {
+                $nin: [constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW]
+            }
         }
 
         let transactions = await paymentHistoryService.getTransactionsWithFilters(filters);
