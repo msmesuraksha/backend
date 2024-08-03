@@ -313,7 +313,7 @@ exports.initiatePaymentVerification = async (req, res) => {
                 logs: [logStamp]
             });
         } else if (req.body.requestor == "CREDITOR") {
-            pmtHistory = await defaulterEntryService.createPaymentHistory(req.body, await DefaulterEntry.findById(req.body.defaulterEntryId), "APPROVED", "L1", "true");
+            pmtHistory = await defaulterEntryService.createPaymentHistory(req.body, await DefaulterEntry.findById(req.body.defaulterEntryId), "PENDING", "L1", "true");
 
             let logStamp = { timeStamp: new Date().toISOString(), message: "Payment recorded by Seller", remarks: req.body.debtorRemarks };
             const log = await Logs.create({
