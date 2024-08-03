@@ -58,12 +58,21 @@ app.use(sessions({
     resave: false
 }));
 
+
+
 const db = require("./app/models/user");
+
+db.mongoose.set('strictQuery', true);
+
+const connectOptions = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000, // Increase timeout to 5000ms
+    socketTimeoutMS: 45000 // Increase socket timeout
+};
+
 db.mongoose
-    .connect(db.url, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    })
+    .connect(db.url, connectOptions)
     .then(() => {
         console.log("Connected to the database!");
     })
