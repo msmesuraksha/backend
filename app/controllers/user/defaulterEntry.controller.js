@@ -476,15 +476,13 @@ exports.deleteDefaulterEntryById = async (req, res) => {
         // await deftEntry?.delete();
 
 
-        const pHistory = await PaymentHistory.findOne({ defaulterEntryId: req.body.defaulterEntryId }).populate(
-            [
-                // { path: 'defaulterEntry.debtor' },
-                { path: 'defaulterEntry', populate: ['invoices'] },
-                { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
-            ]);
+        const pHistories = await PaymentHistory.find({ defaulterEntryId: req.body.defaulterEntryId })
 
-        if (pHistory) {
-            pHistory.status = constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED
+        if (pHistories) {
+            for (let pHistory of pHistories) {
+                pHistory.status = constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED
+                await pHistory.save();
+            }
         }
 
 
@@ -494,11 +492,9 @@ exports.deleteDefaulterEntryById = async (req, res) => {
             latestStatus: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_DELETED,
         }).populate("invoices");
 
-        if (pHistory) {
-            await pHistory.save();
-        }
 
-        res.status(200).json({ message: 'Defaulter Entry and associated payment histories have been deleted.', success: true, response: deftEnt });
+
+        res.status(200).json({ message: 'Defaulter Entry and associated payment histories have been deleted.', success: true, response: pHistories });
     } catch (error) {
         console.log(error)
         res
