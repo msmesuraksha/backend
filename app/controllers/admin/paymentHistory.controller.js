@@ -865,7 +865,9 @@ exports.askForSupportingDocument = async (req, res) => {
 
 
 
-                        mailUtility.sendEmailWithAttachments(mailObj, debtorDocumentIds);
+                        //  mailUtility.sendEmailWithAttachments(mailObj, debtorDocumentIds);sendMail
+
+                        mailUtility.sendMail(mailObj);
 
 
                         //log mail for debtor
@@ -935,7 +937,9 @@ exports.askForSupportingDocument = async (req, res) => {
                             credDocumentIds.push(...invoiceDocuments);
                         }
 
-                        mailUtility.sendEmailWithAttachments(mailObj2, credDocumentIds);
+                        // mailUtility.sendEmailWithAttachments(mailObj2, credDocumentIds);
+
+                        mailUtility.sendMail(mailObj2);
 
                         //log mail for Creditor
                         // logMsg.push(" [ "+new Date().toISOString()+" ] "+"Mail sent to Seller requesting for additional documents");
