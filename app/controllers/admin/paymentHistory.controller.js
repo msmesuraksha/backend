@@ -813,8 +813,10 @@ exports.askForSupportingDocument = async (req, res) => {
                 transactions.push(transaction)
 
                 // let logStamp = " [ "+new Date().toISOString()+" ] "+"Payment record/history moved to documents needed queue";
-                let logStamp = { timeStamp: new Date().toISOString(), message: "Admin has requested supporting documents", remarks: req.body.remarks };
-                let logMsg = [logStamp];
+              /*   let logStamp = { timeStamp: new Date().toISOString(), message: "Admin has requested supporting documents", remarks: req.body.remarks };
+                let logMsg = [logStamp]; */
+
+                let logMsg = [];
 
                 if (i == 0) {
                     if (isDocumentsRequiredByDebtor) {

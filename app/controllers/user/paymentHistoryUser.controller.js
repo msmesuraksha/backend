@@ -744,6 +744,16 @@ exports.uploadSupportingDocuments = async (req, res) => {
         latestStatus: constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW,
       }).populate("invoices");
 
+      const pHistories = await PaymentHistory.find({ defaulterEntryId: pHistory.defaulterEntryId })
+
+      if (pHistories) {
+        for (let pHistory of pHistories) {
+            pHistory.status = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
+            pHistory.pendingWith = pHistory.previousPendingWith
+            await pHistory.save();
+        }
+    }
+
 
 
       let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
