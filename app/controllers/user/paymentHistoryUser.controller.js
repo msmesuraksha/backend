@@ -748,11 +748,13 @@ exports.uploadSupportingDocuments = async (req, res) => {
 
       if (pHistories) {
         for (let pHistory of pHistories) {
-            pHistory.status = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
-            pHistory.pendingWith = pHistory.previousPendingWith
-            await pHistory.save();
+          pHistory.status = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
+          pHistory.isDocumentsRequiredByCreditor == false
+          pHistory.isDocumentsRequiredByDebtor == false
+          pHistory.pendingWith = pHistory.previousPendingWith
+          await pHistory.save();
         }
-    }
+      }
 
 
 
