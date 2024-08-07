@@ -217,7 +217,8 @@ exports.findInvoicesPendingByDebtorIds = function (debtorIds, condition) {
   return defaulterEntry.find(
     {
       debtor: { $in: debtorIds },
-      ...condition
+      ...condition,
+      latestStatus: { $ne: 'COMPLAINT_DELETED' }
     }
   );
 };
