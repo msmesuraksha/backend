@@ -179,7 +179,7 @@ exports.getAllCreditorsByDebtorId = async (req, res) => {
         const crdtrs = await Companies.find({ _id: { $in: credIds } }).populate("companyOwner");
         let allEntries = []
         for (let elem of dbtrs) {
-            let entries = await defaulterEntryService.findInvoicesForCreditorPendingByDebtor(elem.creditorCompanyId, elem._id.toString(), { $or: [{ status: constants.INVOICE_STATUS.PENDING }, { status: constants.INVOICE_STATUS.DEFAULTED }] }).populate("invoices")
+            let entries = await defaulterEntryService.findInvoicesForCreditorPendingByDebtor(elem.creditorCompanyId, elem._id.toString(), {}).populate("invoices")
             allEntries.push(...entries)
             console.log(allEntries)
         }

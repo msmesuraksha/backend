@@ -208,7 +208,8 @@ exports.findInvoicesForCreditorPendingByDebtor = function (creditorId, debtorId,
   return defaulterEntry.find(
     {
       creditorCompanyId: creditorId, debtor: debtorId,
-      ...condition
+      ...condition,
+      latestStatus: { $ne: 'COMPLAINT_DELETED' }
     }
   );
 };
