@@ -312,6 +312,11 @@ exports.initiatePaymentVerification = async (req, res) => {
                 pmtHistoryId: pmtHistory._id,
                 logs: [logStamp]
             });
+
+            let deftEntry = await DefaulterEntry.findOne({ _id: req.body.defaulterEntryId });
+            deftEntry.buyerResponse = true
+            deftEntry.save()
+
         } else if (req.body.requestor == "CREDITOR") {
             pmtHistory = await defaulterEntryService.createPaymentHistory(req.body, await DefaulterEntry.findById(req.body.defaulterEntryId), "PENDING", "L1", "true");
 
