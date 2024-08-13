@@ -537,5 +537,6 @@ function generateUniqueID(gstNumber) {
 
     const uniqueID = `BAF-${gstPart + currentTimeMS + random4Digits}`
 
+
     return uniqueID;
 }
