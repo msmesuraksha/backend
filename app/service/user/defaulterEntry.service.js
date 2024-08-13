@@ -43,7 +43,8 @@ exports.createEntry = async function (defaulterEntryList, debtor, status, totalA
     status: status,
     latestStatus: status,
     totalAmount: totalAmount,
-    complaintNumber: complaintNumber
+    complaintNumber: complaintNumber,
+    buyerResponse: false,
   });
 
   let replacements = [];

@@ -17,6 +17,7 @@ module.exports = mongoose => {
         totalAmount: Number,
         userSuspended: Boolean,
         complaintNumber: String,
+        buyerResponse: Boolean,
     },
         {
             timestamps: true
