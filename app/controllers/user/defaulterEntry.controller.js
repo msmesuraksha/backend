@@ -528,12 +528,14 @@ exports.updateDefaulterEntry = async (req, res) => {
 
 function generateUniqueID(gstNumber) {
     const gstPart = gstNumber.substring(0, 4);
-    const random4Digits = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const random4Digits = Math.floor(Math.random() * 10000).toString().padStart(2, '0');
     const currentTimeMS = new Date().getMilliseconds().toString().padStart(3, '0');
     const randomNumber = Math.random().toString(36).substring(2, 7);
 
     // Combine parts to form the unique ID
-    const uniqueID = `BAF-${gstPart + random4Digits}-${currentTimeMS + randomNumber}`
+    // const uniqueID = `BAF-${gstPart + random4Digits}-${currentTimeMS + randomNumber}`
+
+    const uniqueID = `BAF-${gstPart + currentTimeMS + random4Digits}`
 
     return uniqueID;
 }
