@@ -1,6 +1,7 @@
 const db = require("../../models/admin");
 const user_db = require("../../models/user");
 const commondb = require("../../models/common");
+const ComplainDb = require("../../models/user");
 const Logs = commondb.logs;
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -11,6 +12,7 @@ const PaymentHistory = db.paymentHistory;
 const User = user_db.user;
 const config = process.env;
 const constants = require('../../constants/userConstants');
+const defaulterEntry = ComplainDb.defaulterEntry;
 
 exports.updatePaymentHistoryForEscalate = function (escObj) {
     console.log(escObj);
@@ -173,6 +175,226 @@ exports.getDocumentsRequiredFromPaymentId = async function (paymentId, userType)
     return pH;
 }
 
+// exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatus) {
+
+//     let dateFilter = {};
+
+//     // Determine the date range based on req.body.dateSelection
+//     if (filters.dateSelection === "1m") {
+//         dateFilter = {
+//             $expr: {
+//                 $and: [
+//                     { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+//                     {
+//                         $gte: [
+//                             {
+//                                 $dateFromString: {
+//                                     dateString: "$paymentDate",
+//                                     format: "%d-%m-%Y"
+//                                 }
+//                             },
+//                             { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 30] }] } }
+//                         ]
+//                     }
+//                 ]
+//             }
+//         };
+//     } else if (filters.dateSelection === "2m") {
+//         dateFilter = {
+//             $expr: {
+//                 $and: [
+//                     { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+//                     {
+//                         $gte: [
+//                             {
+//                                 $dateFromString: {
+//                                     dateString: "$paymentDate",
+//                                     format: "%d-%m-%Y"
+//                                 }
+//                             },
+//                             { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 30 * 2] }] } }
+//                         ]
+//                     }
+//                 ]
+//             }
+//         };
+//     } else if (filters.dateSelection === "3m") {
+//         dateFilter = {
+//             $expr: {
+//                 $and: [
+//                     { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+//                     {
+//                         $gte: [
+//                             {
+//                                 $dateFromString: {
+//                                     dateString: "$paymentDate",
+//                                     format: "%d-%m-%Y"
+//                                 }
+//                             },
+//                             { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 30 * 3] }] } }
+//                         ]
+//                     }
+//                 ]
+//             }
+//         };
+//     } else if (filters.dateSelection === "6m") {
+//         dateFilter = {
+//             $expr: {
+//                 $and: [
+//                     { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+//                     {
+//                         $gte: [
+//                             {
+//                                 $dateFromString: {
+//                                     dateString: "$paymentDate",
+//                                     format: "%d-%m-%Y"
+//                                 }
+//                             },
+//                             { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 30 * 6] }] } }
+//                         ]
+//                     }
+//                 ]
+//             }
+//         };
+//     } else if (filters.dateSelection === "1y") {
+//         dateFilter = {
+//             $expr: {
+//                 $and: [
+//                     { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+//                     {
+//                         $gte: [
+//                             {
+//                                 $dateFromString: {
+//                                     dateString: "$paymentDate",
+//                                     format: "%d-%m-%Y"
+//                                 }
+//                             },
+//                             { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 365] }] } }
+//                         ]
+//                     }
+//                 ]
+//             }
+//         };
+//     } else if (filters.dateSelection === "CUSTOM") {
+//         const startDate = new Date(filters.startDate);
+//         const endDate = new Date(filters.endDate);
+//         dateFilter = {
+//             $expr: {
+//                 $and: [
+//                     { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+//                     {
+//                         $gte: [{
+//                             $dateFromString: {
+//                                 dateString: "$paymentDate",
+//                                 format: "%d-%m-%Y"
+//                             }
+//                         }, startDate]
+//                     },
+//                     {
+//                         $lte: [{
+//                             $dateFromString: {
+//                                 dateString: "$paymentDate",
+//                                 format: "%d-%m-%Y"
+//                             }
+//                         }, endDate]
+//                     }
+//                 ]
+//             }
+//         };
+//     }
+
+//     let additionalFilters = {};
+
+//     if (filters.roleBasedFilter) {
+//         additionalFilters = {
+//             pendingWith: adminRole,
+//             $or: [
+//                 { pendingWithAdminEmailId: { $exists: false } },
+//                 { pendingWithAdminEmailId: "" },
+//                 { pendingWithAdminEmailId: emailId }
+//             ],
+//             $or: [
+//                 {
+//                     requestor: 'CREDITOR',
+//                     status: { $in: [constants.PAYMENT_HISTORY_STATUS.APPROVED] }
+//                 },
+//                 {
+//                     status: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
+//                 },
+//             ]
+//         };
+//     } else {
+//         additionalFilters = {
+//             $or: [
+//                 {
+//                     requestor: 'CREDITOR',
+//                     status: { $in: [constants.PAYMENT_HISTORY_STATUS.APPROVED] }
+//                 },
+//                 {
+//                     status: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
+//                 },
+//                 { userSuspended: false }, { userSuspended: { $exists: false } }
+//             ],
+//         };
+//     }
+//     console.log(additionalFilters);
+//     // let statusPass = [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED];
+
+//     let transactions = await PaymentHistory.find({
+//         ...additionalFilters,
+//         // status: { $in: statusPass },
+//         ...dateFilter // Include the date filter
+
+//     }).populate(
+//         [
+//             {
+//                 path: 'defaulterEntry',
+//                 populate: [
+//                     {
+//                         path: 'invoices', populate: [
+//                             'purchaseOrderDocument',
+//                             'challanDocument',
+//                             'invoiceDocument',
+//                             'transportationDocument',
+//                             'otherDocuments'
+//                         ]
+//                     },
+//                     {
+//                         path: 'debtor', populate: [{ path: 'ratings', populate: 'question' }]
+//                     },
+//                     { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" }
+//                 ]
+//             },
+//             {
+//                 path: 'disputedInvoiceSupportingDocuments', populate: [
+//                     'invoice',
+//                     'documents'
+//                 ]
+//             },
+
+//             { path: 'creditorcacertificate' },
+//             { path: 'creditoradditionaldocuments' },
+//             { path: 'attachments' },
+//             { path: 'debtorcacertificate' },
+//             { path: 'debtoradditionaldocuments' },
+//             { path: 'supportingDocuments' }
+//         ]
+//     );
+
+//     transactions = transactions.filter(transaction => transaction.defaulterEntry);
+
+//     transactions = transactions.map(transaction => {
+//         transaction = transaction.toJSON();
+//         if (transaction.defaulterEntry && transaction.defaulterEntry.creditorCompanyId) {
+//             transaction.defaulterEntry.creditor = transaction.defaulterEntry.creditorCompanyId;
+//             delete transaction.defaulterEntry.creditorCompanyId;
+//         }
+//         return transaction;
+//     });
+
+//     return transactions;
+// }
+
 exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatus) {
 
     let dateFilter = {};
@@ -313,10 +535,6 @@ exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatu
             ],
             $or: [
                 {
-                    requestor: 'CREDITOR',
-                    status: { $in: [constants.PAYMENT_HISTORY_STATUS.APPROVED] }
-                },
-                {
                     status: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
                 },
             ]
@@ -324,10 +542,6 @@ exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatu
     } else {
         additionalFilters = {
             $or: [
-                {
-                    requestor: 'CREDITOR',
-                    status: { $in: [constants.PAYMENT_HISTORY_STATUS.APPROVED] }
-                },
                 {
                     status: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
                 },
@@ -339,6 +553,206 @@ exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatu
     // let statusPass = [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED];
 
     let transactions = await PaymentHistory.find({
+        ...additionalFilters,
+        // status: { $in: statusPass },
+        ...dateFilter // Include the date filter
+
+    }).populate(
+        [
+            {
+                path: 'disputedInvoiceSupportingDocuments', populate: [
+                    'invoice',
+                    'documents'
+                ]
+            },
+
+            { path: 'creditorcacertificate' },
+            { path: 'creditoradditionaldocuments' },
+            { path: 'attachments' },
+            { path: 'debtorcacertificate' },
+            { path: 'debtoradditionaldocuments' },
+            { path: 'supportingDocuments' }
+        ]
+    );
+
+    /*   transactions = transactions.filter(transaction => transaction.defaulterEntry); */
+
+    transactions = transactions.map(transaction => {
+        transaction = transaction.toJSON();
+        /*   if (transaction.defaulterEntry && transaction.defaulterEntry.creditorCompanyId) {
+              transaction.defaulterEntry.creditor = transaction.defaulterEntry.creditorCompanyId;
+              delete transaction.defaulterEntry.creditorCompanyId;
+          } */
+        return transaction;
+    });
+
+    return transactions;
+}
+
+exports.getAllComplainList = async function (adminRole, emailId, filters, reqStatus) {
+
+    let dateFilter = {};
+
+    // Determine the date range based on req.body.dateSelection
+    if (filters.dateSelection === "1m") {
+        dateFilter = {
+            $expr: {
+                $and: [
+                    { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+                    {
+                        $gte: [
+                            {
+                                $dateFromString: {
+                                    dateString: "$paymentDate",
+                                    format: "%d-%m-%Y"
+                                }
+                            },
+                            { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 30] }] } }
+                        ]
+                    }
+                ]
+            }
+        };
+    } else if (filters.dateSelection === "2m") {
+        dateFilter = {
+            $expr: {
+                $and: [
+                    { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+                    {
+                        $gte: [
+                            {
+                                $dateFromString: {
+                                    dateString: "$paymentDate",
+                                    format: "%d-%m-%Y"
+                                }
+                            },
+                            { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 30 * 2] }] } }
+                        ]
+                    }
+                ]
+            }
+        };
+    } else if (filters.dateSelection === "3m") {
+        dateFilter = {
+            $expr: {
+                $and: [
+                    { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+                    {
+                        $gte: [
+                            {
+                                $dateFromString: {
+                                    dateString: "$paymentDate",
+                                    format: "%d-%m-%Y"
+                                }
+                            },
+                            { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 30 * 3] }] } }
+                        ]
+                    }
+                ]
+            }
+        };
+    } else if (filters.dateSelection === "6m") {
+        dateFilter = {
+            $expr: {
+                $and: [
+                    { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+                    {
+                        $gte: [
+                            {
+                                $dateFromString: {
+                                    dateString: "$paymentDate",
+                                    format: "%d-%m-%Y"
+                                }
+                            },
+                            { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 30 * 6] }] } }
+                        ]
+                    }
+                ]
+            }
+        };
+    } else if (filters.dateSelection === "1y") {
+        dateFilter = {
+            $expr: {
+                $and: [
+                    { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+                    {
+                        $gte: [
+                            {
+                                $dateFromString: {
+                                    dateString: "$paymentDate",
+                                    format: "%d-%m-%Y"
+                                }
+                            },
+                            { $toDate: { $subtract: [new Date(), { $multiply: [1000, 60, 60, 24, 365] }] } }
+                        ]
+                    }
+                ]
+            }
+        };
+    } else if (filters.dateSelection === "CUSTOM") {
+        const startDate = new Date(filters.startDate);
+        const endDate = new Date(filters.endDate);
+        dateFilter = {
+            $expr: {
+                $and: [
+                    { $ne: ["$paymentDate", ""] }, // Check if paymentDate is not empty
+                    {
+                        $gte: [{
+                            $dateFromString: {
+                                dateString: "$paymentDate",
+                                format: "%d-%m-%Y"
+                            }
+                        }, startDate]
+                    },
+                    {
+                        $lte: [{
+                            $dateFromString: {
+                                dateString: "$paymentDate",
+                                format: "%d-%m-%Y"
+                            }
+                        }, endDate]
+                    }
+                ]
+            }
+        };
+    }
+
+    let additionalFilters = {};
+
+    if (filters.roleBasedFilter) {
+        additionalFilters = {
+            pendingWith: adminRole,
+            $or: [
+                { pendingWithAdminEmailId: { $exists: false } },
+                { pendingWithAdminEmailId: "" },
+                { pendingWithAdminEmailId: emailId }
+            ],
+            $or: [
+                {
+                    adminShow: { $nin: false }
+                },
+                {
+                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
+                },
+            ]
+        };
+    } else {
+        additionalFilters = {
+            $or: [
+                {
+                    adminShow: { $nin: false }
+                },
+                {
+                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
+                },
+                { userSuspended: false }, { userSuspended: { $exists: false } }
+            ],
+        };
+    }
+    console.log(additionalFilters);
+    // let statusPass = [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED];
+
+    let transactions = await defaulterEntry.find({
         ...additionalFilters,
         // status: { $in: statusPass },
         ...dateFilter // Include the date filter
@@ -363,19 +777,7 @@ exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatu
                     { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" }
                 ]
             },
-            {
-                path: 'disputedInvoiceSupportingDocuments', populate: [
-                    'invoice',
-                    'documents'
-                ]
-            },
 
-            { path: 'creditorcacertificate' },
-            { path: 'creditoradditionaldocuments' },
-            { path: 'attachments' },
-            { path: 'debtorcacertificate' },
-            { path: 'debtoradditionaldocuments' },
-            { path: 'supportingDocuments' }
         ]
     );
 
@@ -392,7 +794,6 @@ exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatu
 
     return transactions;
 }
-
 
 exports.getTransactionsWithFilters = async function (filters) {
 

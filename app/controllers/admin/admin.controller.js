@@ -322,15 +322,82 @@ exports.getAllTransactions = async (req, res) => {
     }
 }
 
+// exports.getalltransactionsMerged = async (req, res) => {
+//     try {
+//         let reqStatus = "PENDING";
+//         if (req.body.reqStatus && req.body.reqStatus == "APPROVED") {
+//             reqStatus = "APPROVED";
+//         }
+//         req.body.roleBasedFilter = (req.token.adminDetails.adminRole == "L3") ? req.body.roleBasedFilter : true
+
+//         let filters = { dateSelection: req.body.dateSelection, startDate: req.body.startDate, endDate: req.body.endDate, roleBasedFilter: req.body.roleBasedFilter }
+
+//         let transactions = await paymentHistoryService.getAllTrasaction(req.token.adminDetails.adminRole, req.token.adminDetails.emailId, filters, reqStatus);
+
+//         let transBackup = [];
+//         transBackup = transactions;
+
+//         let resArray = [];
+//         let countMap = new Map();
+//         let count = 0;
+
+//         for (let i = 0; i < transactions.length; i++) {
+//             if (countMap.has(transactions[i].defaulterEntryId)) {
+//                 delete transactions[i].defaulterEntry;
+//                 resArray[countMap.get(transactions[i].defaulterEntryId)].pHArray.push(transactions[i]);
+//             } else {
+//                 // finding lowest duefrom date
+//                 if (transactions[i].defaulterEntry?.invoices) {
+//                     for (let invoice of transactions[i].defaulterEntry?.invoices) {
+//                         if (transactions[i].defaulterEntry.dueFrom) {
+//                             if (transactions[i].defaulterEntry.dueFrom > invoice.dueDate) {
+//                                 transactions[i].defaulterEntry.dueFrom = invoice.dueDate
+//                             }
+//                         } else {
+//                             transactions[i].defaulterEntry.dueFrom = invoice.dueDate
+//                         }
+//                     }
+//                     transactions[i].defaulterEntry.dueFrom = commonUtil.getDateInGeneralFormat(transactions[i].defaulterEntry.dueFrom)
+//                 }
+//                 let temp = { "defaulterEntry": transactions[i].defaulterEntry }
+
+//                 // below code will filter ratings only for current defaulter Entry Id by removing deleted null values
+//                 for (let j = 0; j < temp.defaulterEntry.debtor.ratings.length; j++) {
+//                     if (!(temp.defaulterEntry._id == temp.defaulterEntry.debtor.ratings[j].defaulterEntryId)) {
+//                         delete temp.defaulterEntry.debtor.ratings[j];
+//                     }
+//                 }
+//                 temp.defaulterEntry.debtor.ratings = temp.defaulterEntry.debtor.ratings.filter(item => item !== null);
+
+//                 delete transactions[i].defaulterEntry;
+//                 temp["pHArray"] = [transactions[i]];
+
+//                 resArray[count] = temp;
+//                 countMap.set(transactions[i].defaulterEntryId, count);
+//                 count++;
+//             }
+//         }
+
+
+//         // return all transactions
+//         res.status(200).json({ message: "Transaction list fetched successfully.", success: true, response: resArray });
+//     } catch (err) {
+//         console.log(err)
+//         res
+//             .status(500)
+//             .send({ message: "Something went wrong", success: false });
+//     }
+// }
+
 exports.getalltransactionsMerged = async (req, res) => {
     try {
         let reqStatus = "PENDING";
-        if (req.body.reqStatus && req.body.reqStatus == "APPROVED") {
-            reqStatus = "APPROVED";
-        }
+
         req.body.roleBasedFilter = (req.token.adminDetails.adminRole == "L3") ? req.body.roleBasedFilter : true
 
         let filters = { dateSelection: req.body.dateSelection, startDate: req.body.startDate, endDate: req.body.endDate, roleBasedFilter: req.body.roleBasedFilter }
+
+        let allComplaint = await paymentHistoryService.getAllComplainList(req.token.adminDetails.adminRole, req.token.adminDetails.emailId, filters, reqStatus)
 
         let transactions = await paymentHistoryService.getAllTrasaction(req.token.adminDetails.adminRole, req.token.adminDetails.emailId, filters, reqStatus);
 

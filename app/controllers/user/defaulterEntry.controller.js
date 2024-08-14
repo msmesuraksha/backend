@@ -314,7 +314,7 @@ exports.initiatePaymentVerification = async (req, res) => {
             });
 
             let deftEntry = await DefaulterEntry.findOne({ _id: req.body.defaulterEntryId });
-            deftEntry.buyerResponse = true
+            deftEntry.adminShow = true
             deftEntry.save()
 
         } else if (req.body.requestor == "CREDITOR") {
