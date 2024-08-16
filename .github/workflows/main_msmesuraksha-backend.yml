@@ -35,7 +35,6 @@ jobs:
         with:
           name: node-app
           path: release.zip
-          retention-days: 7
 
   deploy:
     runs-on: ubuntu-latest
