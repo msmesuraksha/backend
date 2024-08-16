@@ -729,9 +729,6 @@ exports.getAllComplainList = async function (adminRole, emailId, filters, reqSta
             ],
             $or: [
                 {
-                    adminShow: { $nin: false }
-                },
-                {
                     latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
                 },
             ]
@@ -739,9 +736,6 @@ exports.getAllComplainList = async function (adminRole, emailId, filters, reqSta
     } else {
         additionalFilters = {
             $or: [
-                {
-                    adminShow: { $nin: false }
-                },
                 {
                     latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
                 },
@@ -759,35 +753,32 @@ exports.getAllComplainList = async function (adminRole, emailId, filters, reqSta
 
     }).populate(
         [
+            { path: 'invoices' },
             {
-                path: 'defaulterEntry',
-                populate: [
-                    {
-                        path: 'invoices', populate: [
-                            'purchaseOrderDocument',
-                            'challanDocument',
-                            'invoiceDocument',
-                            'transportationDocument',
-                            'otherDocuments'
-                        ]
-                    },
-                    {
-                        path: 'debtor', populate: [{ path: 'ratings', populate: 'question' }]
-                    },
-                    { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" }
+                path: 'invoices', populate: [
+                    { path: 'purchaseOrderDocument' },
+                    { path: 'challanDocument' },
+                    { path: 'invoiceDocument' },
+                    { path: 'transportationDocument' },
+                    { path: 'otherDocuments' },
                 ]
             },
-
+            // { path: 'debtor' },
+            // { path: 'debtor', populate: 'ratings' },
+            {
+                path: 'debtor', populate: { path: 'ratings', populate: ['question'] }
+            },
+            { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" }
         ]
     );
 
-    transactions = transactions.filter(transaction => transaction.defaulterEntry);
+    transactions = transactions.filter(transaction => transaction.adminShow == true);
 
     transactions = transactions.map(transaction => {
         transaction = transaction.toJSON();
-        if (transaction.defaulterEntry && transaction.defaulterEntry.creditorCompanyId) {
-            transaction.defaulterEntry.creditor = transaction.defaulterEntry.creditorCompanyId;
-            delete transaction.defaulterEntry.creditorCompanyId;
+        if (transaction && transaction.creditorCompanyId) {
+            transaction.creditor = transaction.creditorCompanyId;
+            delete transaction.creditorCompanyId;
         }
         return transaction;
     });
