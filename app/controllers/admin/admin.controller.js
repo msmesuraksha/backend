@@ -439,7 +439,7 @@ exports.getalltransactionsMerged = async (req, res) => {
             const defulterEntryRecord = transactions.filter(value => value.defaulterEntryId == temp.defaulterEntry.id)
 
 
-            temp["pHArray"] = [defulterEntryRecord];
+            temp["pHArray"] = defulterEntryRecord;
 
             resArray[count] = temp;
             /*  countMap.set(transactions[i].defaulterEntryId, count); */
