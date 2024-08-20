@@ -520,6 +520,264 @@ function mapMalTemplateSeller(status) {
     }
 }
 
+// exports.approveOrRejectPayment = async (req, res) => {
+//     try {
+//         let status = null;
+//         let pmtAmtTotal = 0;
+//         let message = "";
+//         let result = null;
+//         let paymentHistoriesChanged = [];
+//         if (req.body.payments && req.body.payments.length !== 0) {
+//             let deftEntry = await DefaulterEntry.findById(req.body.defaulterEntryId);
+
+//             if (req.body.status == "APPROVED") {
+//                 for (let i = 0; i < req.body.payments.length; i++) {
+//                     let payment = req.body.payments[i]
+//                     let paymentId = payment.paymentId;
+//                     let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+//                     let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
+//                     status = constants.PAYMENT_HISTORY_STATUS.APPROVED;
+//                     result = await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, pendingWithAdminEmailId: req.token.adminDetails.emailId });
+//                     //let paymentHistoryAndInvoice =  await result.populate("invoice");
+//                     if (req.body.disputeType == "DISPUTE_TYPE1") {
+//                         deftEntry.totalAmount = result.totalAmtAsPerDebtor;
+//                     } else {
+//                         deftEntry.totalAmount = deftEntry.totalAmount - Number(result.amtPaid);
+//                     }
+
+//                     pmtAmtTotal += Number(result.amtPaid);
+
+//                     if (deftEntry.totalAmount <= 0) {
+//                         deftEntry.totalAmount = 0
+//                         deftEntry.status = constants.INVOICE_STATUS.PAID
+//                     }
+//                     // deftEntry.save()
+
+//                     currAdmin.transactionsProcessed++;
+//                     currAdmin.save();
+
+//                     // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment approved for amount "+result.amtPaid+".";
+//                     let logMsg = { timeStamp: new Date().toISOString(), message: "Payment approved for amount " + result.amtPaid + ".", remarks: req.body.remarks };
+//                     if (existingLog) {
+//                         // If the document exists, update the logs array
+//                         existingLog.logs.push(logMsg);
+//                         await existingLog.save();
+//                     } else {
+//                         // create log
+//                         let log = await Logs.create({
+//                             pmtHistoryId: paymentId,  // pmtHistory id
+//                             logs: [logMsg]
+//                         });
+//                     }
+//                     paymentHistoriesChanged.push(result);
+//                 }
+
+//                 const pHistory = await PaymentHistory.findOne({ _id: req.body.payments[0].paymentId }).populate(
+//                     [
+//                         { path: 'defaulterEntry', populate: ['invoices'] },
+//                         { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
+//                     ]);
+//                 let credMail = await userService.getCompanyOwner(pHistory.defaulterEntry.creditorCompanyId).select("emailId");
+//                 credMail = credMail?.emailId ? credMail.emailId : "";
+
+//                 let replacements = [];
+//                 replacements.push({ target: "TOTAL_AMOUNT_PAID", value: pmtAmtTotal })
+//                 mailObj = await mailController.getMailTemplate("PAYMENT_APPROVED", replacements)
+
+//                 mailObj.to = "" + pHistory.defaulterEntry.debtor.customerEmail + "," + credMail + "";
+//                 let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(pHistory.defaulterEntry.debtor.gstin);
+//                 mailObj.cc = ccEmails;
+//                 mailUtility.sendMail(mailObj)
+//                 message = "Payment Approved!";
+//                 // return res.status(200).send({ message: "Payment Approved!", success: true, response: {result, deftE} });
+
+//             } else if (req.body.status == "COMPLAINT_APPROVED") {
+//                 for (let i = 0; i < req.body.payments.length; i++) {
+//                     let payment = req.body.payments[i]
+//                     let paymentId = payment.paymentId;
+//                     let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+//                     let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
+//                     status = req.body.status;
+//                     result = await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, pendingWithAdminEmailId: req.token.adminDetails.emailId });
+
+//                     currAdmin.transactionsProcessed++;
+//                     currAdmin.save();
+
+//                     // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
+//                     let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to COMPLAINT APPROVED by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
+
+//                     if (i == 0) {
+//                         if (existingLog) {
+//                             // If the document exists, update the logs array
+//                             existingLog.logs.push(logMsg);
+//                             await existingLog.save();
+//                         } else {
+//                             // create log
+//                             let log = await Logs.create({
+//                                 pmtHistoryId: paymentId,  // pmtHistory id
+//                                 logs: [logMsg]
+//                             });
+//                         }
+//                     }
+
+
+//                     paymentHistoriesChanged.push(result);
+//                 }
+
+//                 const pHistory = await PaymentHistory.findOne({ _id: req.body.payments[0].paymentId }).populate(
+//                     [
+//                         { path: 'defaulterEntry', populate: ['invoices'] },
+//                         { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin companyName" } },
+//                         { path: 'defaulterEntry', populate: { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" } },
+//                     ]);
+//                 let replacementsBuyer = [];
+//                 console.log(mapStatus(req.body.status));
+
+//                 replacementsBuyer.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
+//                 replacementsBuyer.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+//                 let mailObjBuyer = await mailController.getMailTemplate("COMPLAINT_APPROVED_BUYER", replacementsBuyer)
+
+//                 mailObjBuyer.to = pHistory.defaulterEntry.debtor.customerEmail;
+//                 let ccEmailsBuyer = await debtorService.getDebtorAndCompanyOwnerEmails(pHistory.defaulterEntry.debtor.gstin);
+//                 mailObjBuyer.cc = ccEmailsBuyer;
+
+//                 //  seller 
+
+//                 let replacementsSeller = [];
+//                 replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
+//                 replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+//                 let mailObjSeller = await mailController.getMailTemplate("COMPLAINT_APPROVED_SELLER", replacementsSeller)
+
+//                 mailObjSeller.to = pHistory.defaulterEntry.creditorCompanyId.emailId;
+//                 let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(pHistory.defaulterEntry.creditorCompanyId.gstin);
+//                 mailObjSeller.cc = ccEmailsSeller;
+
+//                 mailUtility.sendMail(mailObjBuyer)
+//                 mailUtility.sendMail(mailObjSeller)
+
+//                 message = "Payment Status changed";
+//                 // return res.status(200).send({ message: "Payment Status changed", success: true, response: result });
+
+//             } else {
+//                 for (let i = 0; i < req.body.payments.length; i++) {
+//                     let payment = req.body.payments[i]
+//                     let paymentId = payment.paymentId;
+//                     let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+//                     let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
+//                     status = req.body.status;
+//                     result = await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, pendingWithAdminEmailId: req.token.adminDetails.emailId });
+
+//                     currAdmin.transactionsProcessed++;
+//                     currAdmin.save();
+
+//                     let currentStatus = StatusAndOpinionObj[req.body.status];
+
+//                     if (currentStatus == undefined || currentStatus == null) {
+//                         currentStatus = ''
+//                     }
+
+
+//                     // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
+//                     let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to " + (currentStatus) + " by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
+
+//                     if (i == 0) {
+//                         if (existingLog) {
+//                             // If the document exists, update the logs array
+//                             existingLog.logs.push(logMsg);
+//                             await existingLog.save();
+//                         } else {
+//                             // create log
+//                             let log = await Logs.create({
+//                                 pmtHistoryId: paymentId,  // pmtHistory id
+//                                 logs: [logMsg]
+//                             });
+//                         }
+
+//                     }
+
+//                     paymentHistoriesChanged.push(result);
+//                 }
+
+//                 const pHistory = await PaymentHistory.findOne({ _id: req.body.payments[0].paymentId }).populate(
+//                     [
+//                         { path: 'defaulterEntry', populate: ['invoices'] },
+//                         { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin companyName" } },
+//                         { path: 'defaulterEntry', populate: { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" } },
+//                     ]);
+//                 console.log(mapStatus(req.body.status));
+
+//                 if (req.body.status == 'FULLY_RESOLVED_PAYMENT_RECIEVED') {
+//                     let replacementsBuyer = [];
+//                     replacementsBuyer.push({ target: "PAYMENT_STATUS", value: mapStatus(req.body.status) })
+//                     replacementsBuyer.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
+//                     replacementsBuyer.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+//                     let mailObjBuyer = await mailController.getMailTemplate("PAYMENT_STATUS_CHANGED_BUYER", replacementsBuyer)
+
+//                     mailObjBuyer.to = pHistory.defaulterEntry.debtor.customerEmail;
+//                     let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(pHistory.defaulterEntry.debtor.gstin);
+//                     mailObjBuyer.cc = ccEmails;
+//                     console.log(mailObjBuyer.to);
+
+//                     // seller
+
+//                     let replacementsSeller = [];
+//                     replacementsSeller.push({ target: "PAYMENT_STATUS", value: mapStatus(req.body.status) })
+//                     replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
+//                     replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+//                     let mailObjSeller = await mailController.getMailTemplate("PAYMENT_STATUS_CHANGED_SELLER", replacementsSeller)
+
+//                     mailObjSeller.to = pHistory.defaulterEntry.creditorCompanyId.emailId;
+//                     let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(pHistory.defaulterEntry.creditorCompanyId.gstin);
+//                     mailObjSeller.cc = ccEmailsSeller;
+
+
+//                     mailUtility.sendMail(mailObjBuyer)
+//                     mailUtility.sendMail(mailObjSeller)
+//                 } else {
+
+//                     let replacementsBuyer = [];
+//                     replacementsBuyer.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
+//                     replacementsBuyer.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+//                     let mailObjBuyer = await mailController.getMailTemplate(mapMalTemplateBuyer(req.body.status), replacementsBuyer)
+
+//                     mailObjBuyer.to = pHistory.defaulterEntry.debtor.customerEmail;
+//                     let ccEmailsBuyer = await debtorService.getDebtorAndCompanyOwnerEmails(pHistory.defaulterEntry.debtor.gstin);
+//                     mailObjBuyer.cc = ccEmailsBuyer;
+
+//                     //  seller 
+
+//                     let replacementsSeller = [];
+//                     replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
+//                     replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+//                     let mailObjSeller = await mailController.getMailTemplate(mapMalTemplateSeller(req.body.status), replacementsSeller)
+//                     mailObjSeller.subject = await mailController.getMailSubjectTemplate(mapMalTemplateSeller(req.body.status), replacementsSeller)
+
+//                     mailObjSeller.to = pHistory.defaulterEntry.creditorCompanyId.emailId;
+//                     //  mailObjSeller.subject = `Status of Your Complaint Against ${pHistory.defaulterEntry.debtor.companyName} - Buyer May Be Defaulter`
+//                     let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(pHistory.defaulterEntry.creditorCompanyId.gstin);
+//                     mailObjSeller.cc = ccEmailsSeller;
+
+//                     mailUtility.sendMail(mailObjBuyer)
+//                     mailUtility.sendMail(mailObjSeller)
+//                 }
+
+
+
+//                 message = "Payment Status changed";
+//                 // return res.status(200).send({ message: "Payment Status changed", success: true, response: result });
+//             }
+//             deftEntry.latestStatus = req.body.status
+//             deftEntry.save()
+//             return res.status(200).send({ message: message, success: true, response: { paymentHistoriesChanged, deftEntry } });
+//         }
+//     } catch (err) {
+//         console.log(err)
+//         res
+//             .status(500)
+//             .send({ message: "Something went wrong", reponse: "", success: false });
+//     }
+// };
+
 exports.approveOrRejectPayment = async (req, res) => {
     try {
         let status = null;
@@ -592,37 +850,37 @@ exports.approveOrRejectPayment = async (req, res) => {
                 // return res.status(200).send({ message: "Payment Approved!", success: true, response: {result, deftE} });
 
             } else if (req.body.status == "COMPLAINT_APPROVED") {
-                for (let i = 0; i < req.body.payments.length; i++) {
-                    let payment = req.body.payments[i]
-                    let paymentId = payment.paymentId;
-                    let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
-                    let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
-                    status = req.body.status;
-                    result = await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, pendingWithAdminEmailId: req.token.adminDetails.emailId });
 
-                    currAdmin.transactionsProcessed++;
-                    currAdmin.save();
+                let payment = req.body.payments[0]
+                let paymentId = payment.paymentId;
+                let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+                let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
+                status = req.body.status;
+                result = await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, pendingWithAdminEmailId: req.token.adminDetails.emailId });
 
-                    // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
-                    let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to COMPLAINT APPROVED by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
+                currAdmin.transactionsProcessed++;
+                currAdmin.save();
 
-                    if (i == 0) {
-                        if (existingLog) {
-                            // If the document exists, update the logs array
-                            existingLog.logs.push(logMsg);
-                            await existingLog.save();
-                        } else {
-                            // create log
-                            let log = await Logs.create({
-                                pmtHistoryId: paymentId,  // pmtHistory id
-                                logs: [logMsg]
-                            });
-                        }
-                    }
+                // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
+                let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to COMPLAINT APPROVED by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
 
 
-                    paymentHistoriesChanged.push(result);
+                if (existingLog) {
+                    // If the document exists, update the logs array
+                    existingLog.logs.push(logMsg);
+                    await existingLog.save();
+                } else {
+                    // create log
+                    let log = await Logs.create({
+                        pmtHistoryId: paymentId,  // pmtHistory id
+                        logs: [logMsg]
+                    });
                 }
+
+
+
+                paymentHistoriesChanged.push(result);
+
 
                 const pHistory = await PaymentHistory.findOne({ _id: req.body.payments[0].paymentId }).populate(
                     [
@@ -659,44 +917,44 @@ exports.approveOrRejectPayment = async (req, res) => {
                 // return res.status(200).send({ message: "Payment Status changed", success: true, response: result });
 
             } else {
-                for (let i = 0; i < req.body.payments.length; i++) {
-                    let payment = req.body.payments[i]
-                    let paymentId = payment.paymentId;
-                    let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
-                    let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
-                    status = req.body.status;
-                    result = await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, pendingWithAdminEmailId: req.token.adminDetails.emailId });
 
-                    currAdmin.transactionsProcessed++;
-                    currAdmin.save();
+                let payment = req.body.payments[0]
+                let paymentId = payment.paymentId;
+                let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+                let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
+                status = req.body.status;
+                result = await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, pendingWithAdminEmailId: req.token.adminDetails.emailId });
 
-                    let currentStatus = StatusAndOpinionObj[req.body.status];
+                currAdmin.transactionsProcessed++;
+                currAdmin.save();
 
-                    if (currentStatus == undefined || currentStatus == null) {
-                        currentStatus = ''
-                    }
+                let currentStatus = StatusAndOpinionObj[req.body.status];
 
-
-                    // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
-                    let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to " + (currentStatus) + " by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
-
-                    if (i == 0) {
-                        if (existingLog) {
-                            // If the document exists, update the logs array
-                            existingLog.logs.push(logMsg);
-                            await existingLog.save();
-                        } else {
-                            // create log
-                            let log = await Logs.create({
-                                pmtHistoryId: paymentId,  // pmtHistory id
-                                logs: [logMsg]
-                            });
-                        }
-
-                    }
-
-                    paymentHistoriesChanged.push(result);
+                if (currentStatus == undefined || currentStatus == null) {
+                    currentStatus = ''
                 }
+
+
+                // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
+                let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to " + (currentStatus) + " by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
+
+
+                if (existingLog) {
+                    // If the document exists, update the logs array
+                    existingLog.logs.push(logMsg);
+                    await existingLog.save();
+                } else {
+                    // create log
+                    let log = await Logs.create({
+                        pmtHistoryId: paymentId,  // pmtHistory id
+                        logs: [logMsg]
+                    });
+                }
+
+
+
+                paymentHistoriesChanged.push(result);
+
 
                 const pHistory = await PaymentHistory.findOne({ _id: req.body.payments[0].paymentId }).populate(
                     [
@@ -760,8 +1018,6 @@ exports.approveOrRejectPayment = async (req, res) => {
                     mailUtility.sendMail(mailObjBuyer)
                     mailUtility.sendMail(mailObjSeller)
                 }
-
-
 
                 message = "Payment Status changed";
                 // return res.status(200).send({ message: "Payment Status changed", success: true, response: result });
