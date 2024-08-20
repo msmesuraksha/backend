@@ -739,62 +739,127 @@ exports.deleteSubPkgAPIQtMappingById = async (req, res) => {
     }
 };
 
+// exports.escalateRequest = async (req, res) => {
+//     try {
+//         // will receive paymentId and escalate in the body
+//         let pendingWith = "";
+//         // let paymentId = req.body.paymentId;
+
+//         let result = null;
+//         if (req.body.payments && req.body.payments.length !== 0) {
+//             for (let i = 0; i < req.body.payments.length; i++) {
+//                 let paymentId = req.body.payments[i].paymentId
+//                 if (req.token.adminDetails.adminRole == "L1") {
+//                     pendingWith = "L2";
+//                     result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
+//                     let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+//                     // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L2";
+//                     let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L2", remarks: req.body.remarks };
+
+//                     if (i == 0) {
+//                         if (existingLog) {
+//                             // If the document exists, update the logs array
+//                             existingLog.logs.push(logMsg);
+//                             await existingLog.save();
+//                         } else {
+//                             // create log
+//                             let log = await Logs.create({
+//                                 pmtHistoryId: paymentId,  // pmtHistory id
+//                                 logs: [logMsg]
+//                             });
+//                         }
+//                     }
+
+//                 } if (req.token.adminDetails.adminRole == "L2") {
+//                     pendingWith = "L3";
+//                     result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
+//                     let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+//                     // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L3";
+//                     let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L3", remarks: req.body.remarks };
+
+//                     if (i == 0) {
+//                         if (existingLog) {
+//                             // If the document exists, update the logs array
+//                             existingLog.logs.push(logMsg);
+//                             await existingLog.save();
+//                         } else {
+//                             // create log
+//                             let log = await Logs.create({
+//                                 pmtHistoryId: paymentId,  // pmtHistory id
+//                                 logs: [logMsg]
+//                             });
+//                         }
+//                     }
+
+//                 }
+//             }
+//         }
+//         return res.status(200).send({ message: "Issue Escalated", success: true, response: result });
+//     } catch (err) {
+//         console.log(err)
+//         res
+//             .status(500)
+//             .send({ message: "Something went wrong", reponse: "", success: false });
+//     }
+// };
+
 exports.escalateRequest = async (req, res) => {
     try {
         // will receive paymentId and escalate in the body
         let pendingWith = "";
         // let paymentId = req.body.paymentId;
-
+        let defaultersComplain = ''
         let result = null;
         if (req.body.payments && req.body.payments.length !== 0) {
-            for (let i = 0; i < req.body.payments.length; i++) {
-                let paymentId = req.body.payments[i].paymentId
-                if (req.token.adminDetails.adminRole == "L1") {
-                    pendingWith = "L2";
-                    result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
-                    let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
-                    // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L2";
-                    let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L2", remarks: req.body.remarks };
+            let paymentId = req.body.payments[0].paymentId
+            if (req.token.adminDetails.adminRole == "L1") {
+                pendingWith = "L2";
+                defaultersComplain = DefaulterEntry.findByIdAndUpdate({ _id: req.body.defaulterEntryId }, { pendingWith: pendingWith, pendingWithAdminEmailId: "" })
+                result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
+                let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+                // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L2";
+                let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L2", remarks: req.body.remarks };
 
-                    if (i == 0) {
-                        if (existingLog) {
-                            // If the document exists, update the logs array
-                            existingLog.logs.push(logMsg);
-                            await existingLog.save();
-                        } else {
-                            // create log
-                            let log = await Logs.create({
-                                pmtHistoryId: paymentId,  // pmtHistory id
-                                logs: [logMsg]
-                            });
-                        }
-                    }
 
-                } if (req.token.adminDetails.adminRole == "L2") {
-                    pendingWith = "L3";
-                    result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
-                    let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
-                    // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L3";
-                    let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L3", remarks: req.body.remarks };
-
-                    if (i == 0) {
-                        if (existingLog) {
-                            // If the document exists, update the logs array
-                            existingLog.logs.push(logMsg);
-                            await existingLog.save();
-                        } else {
-                            // create log
-                            let log = await Logs.create({
-                                pmtHistoryId: paymentId,  // pmtHistory id
-                                logs: [logMsg]
-                            });
-                        }
-                    }
-
+                if (existingLog) {
+                    // If the document exists, update the logs array
+                    existingLog.logs.push(logMsg);
+                    await existingLog.save();
+                } else {
+                    // create log
+                    let log = await Logs.create({
+                        pmtHistoryId: paymentId,  // pmtHistory id
+                        logs: [logMsg]
+                    });
                 }
+
+
+            } if (req.token.adminDetails.adminRole == "L2") {
+                pendingWith = "L3";
+                defaultersComplain = DefaulterEntry.findByIdAndUpdate({ _id: req.body.defaulterEntryId }, { pendingWith: pendingWith, pendingWithAdminEmailId: "" })
+                result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
+                let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+                // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L3";
+                let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L3", remarks: req.body.remarks };
+
+
+                if (existingLog) {
+                    // If the document exists, update the logs array
+                    existingLog.logs.push(logMsg);
+                    await existingLog.save();
+                } else {
+                    // create log
+                    let log = await Logs.create({
+                        pmtHistoryId: paymentId,  // pmtHistory id
+                        logs: [logMsg]
+                    });
+                }
+
+
             }
+
         }
-        return res.status(200).send({ message: "Issue Escalated", success: true, response: result });
+        return res.status(200).send({ message: "Issue Escalated", success: true, response: defaultersComplain });
     } catch (err) {
         console.log(err)
         res
