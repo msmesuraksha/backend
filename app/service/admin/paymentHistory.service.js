@@ -863,6 +863,82 @@ exports.getTransactionsWithFilters = async function (filters) {
 }
 
 
+exports.getTransactionsWithDefaulterFilters = async function (filters) {
+
+    let transactions = await defaulterEntry.find({
+        ...filters,
+    }).sort({ updatedAt: 1 }).populate(
+        [
+            { path: 'invoices' },
+            {
+                path: 'invoices', populate: [
+                    { path: 'purchaseOrderDocument' },
+                    { path: 'challanDocument' },
+                    { path: 'invoiceDocument' },
+                    { path: 'transportationDocument' },
+                    { path: 'otherDocuments' },
+                ]
+            },
+            // { path: 'debtor' },
+            // { path: 'debtor', populate: 'ratings' },
+            {
+                path: 'debtor', populate: { path: 'ratings', populate: ['question'] }
+            },
+            { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" }
+        ]
+    );
+
+    transactions = transactions.filter(transaction => transaction.adminShow == true);
+
+    transactions = transactions.map(transaction => {
+        transaction = transaction.toJSON();
+        if (transaction && transaction.creditorCompanyId) {
+            transaction.creditor = transaction.creditorCompanyId;
+            delete transaction.creditorCompanyId;
+        }
+        return transaction;
+    });
+
+    return transactions;
+}
+
+exports.getTransactionsWithPaymentFilter = async function (filters) {
+
+    let transactions = await PaymentHistory.find({
+        ...filters,
+    }).sort({ updatedAt: 1 }).populate(
+        [
+            {
+                path: 'disputedInvoiceSupportingDocuments', populate: [
+                    'invoice',
+                    'documents'
+                ]
+            },
+
+            { path: 'creditorcacertificate' },
+            { path: 'creditoradditionaldocuments' },
+            { path: 'attachments' },
+            { path: 'debtorcacertificate' },
+            { path: 'debtoradditionaldocuments' },
+            { path: 'supportingDocuments' }
+        ]
+    );
+
+    /*   transactions = transactions.filter(transaction => transaction.defaulterEntry); */
+
+    transactions = transactions.map(transaction => {
+        transaction = transaction.toJSON();
+        /*   if (transaction.defaulterEntry && transaction.defaulterEntry.creditorCompanyId) {
+              transaction.defaulterEntry.creditor = transaction.defaulterEntry.creditorCompanyId;
+              delete transaction.defaulterEntry.creditorCompanyId;
+          } */
+        return transaction;
+    });
+
+    return transactions;
+}
+
+
 
 exports.deleteTransactionBasedOnFilter = async function (filters) {
 

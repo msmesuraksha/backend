@@ -1496,19 +1496,84 @@ exports.takeUpRequest = async (req, res) => {
 }
 
 
+// exports.getAllDocumentsNeededTransactionsForLoggedInUser = async (req, res) => {
+//     try {
+
+//         // let transactions = await PaymentHistory.find({pendingWithAdminEmailId: req.token.adminDetails.emailId, status: userConstants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED});
+
+//         let filters = {
+//             pendingWithAdminEmailId: req.token.adminDetails.emailId,
+//             status: {
+//                 $nin: [constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW]
+//             }
+//         }
+
+//         let transactions = await paymentHistoryService.getTransactionsWithFilters(filters);
+
+//         let transBackup = [];
+//         transBackup = transactions;
+
+//         let resArray = [];
+//         let countMap = new Map();
+//         let count = 0;
+
+//         for (let i = 0; i < transactions.length; i++) {
+//             if (countMap.has(transactions[i].defaulterEntryId)) {
+//                 delete transactions[i].defaulterEntry;
+//                 resArray[countMap.get(transactions[i].defaulterEntryId)].pHArray.push(transactions[i]);
+//             } else {
+//                 // finding lowest duefrom date
+//                 if (transactions[i].defaulterEntry?.invoices) {
+//                     for (let invoice of transactions[i].defaulterEntry?.invoices) {
+//                         if (transactions[i].defaulterEntry.dueFrom) {
+//                             if (transactions[i].defaulterEntry.dueFrom > invoice.dueDate) {
+//                                 transactions[i].defaulterEntry.dueFrom = invoice.dueDate
+//                             }
+//                         } else {
+//                             transactions[i].defaulterEntry.dueFrom = invoice.dueDate
+//                         }
+//                     }
+//                     transactions[i].defaulterEntry.dueFrom = commonUtil.getDateInGeneralFormat(transactions[i].defaulterEntry.dueFrom)
+//                 }
+//                 let temp = { "defaulterEntry": transactions[i].defaulterEntry }
+//                 delete transactions[i].defaulterEntry;
+//                 temp["pHArray"] = [transactions[i]];
+
+//                 resArray[count] = temp;
+//                 countMap.set(transactions[i].defaulterEntryId, count);
+//                 count++;
+//             }
+//         }
+
+//         // return all transactions
+//         res.status(200).json({ message: "Transaction list fetched successfully.", success: true, response: resArray });
+//     } catch (err) {
+//         console.log(err)
+//         res
+//             .status(500)
+//             .send({ message: "Something went wrong", success: false });
+//     }
+// }
+
+
 exports.getAllDocumentsNeededTransactionsForLoggedInUser = async (req, res) => {
     try {
 
         // let transactions = await PaymentHistory.find({pendingWithAdminEmailId: req.token.adminDetails.emailId, status: userConstants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED});
 
-        let filters = {
+        let companiesFilter = {
             pendingWithAdminEmailId: req.token.adminDetails.emailId,
-            status: {
+            latestStatus: {
                 $nin: [constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW]
             }
         }
+        let paymentFiler = {
+            pendingWithAdminEmailId: req.token.adminDetails.emailId,
+        }
 
-        let transactions = await paymentHistoryService.getTransactionsWithFilters(filters);
+        let allComplaint = await paymentHistoryService.getTransactionsWithDefaulterFilters(companiesFilter)
+
+        let transactions = await paymentHistoryService.getTransactionsWithPaymentFilter(paymentFiler);
 
         let transBackup = [];
         transBackup = transactions;
@@ -1517,32 +1582,43 @@ exports.getAllDocumentsNeededTransactionsForLoggedInUser = async (req, res) => {
         let countMap = new Map();
         let count = 0;
 
-        for (let i = 0; i < transactions.length; i++) {
-            if (countMap.has(transactions[i].defaulterEntryId)) {
-                delete transactions[i].defaulterEntry;
-                resArray[countMap.get(transactions[i].defaulterEntryId)].pHArray.push(transactions[i]);
-            } else {
-                // finding lowest duefrom date
-                if (transactions[i].defaulterEntry?.invoices) {
-                    for (let invoice of transactions[i].defaulterEntry?.invoices) {
-                        if (transactions[i].defaulterEntry.dueFrom) {
-                            if (transactions[i].defaulterEntry.dueFrom > invoice.dueDate) {
-                                transactions[i].defaulterEntry.dueFrom = invoice.dueDate
-                            }
-                        } else {
-                            transactions[i].defaulterEntry.dueFrom = invoice.dueDate
-                        }
-                    }
-                    transactions[i].defaulterEntry.dueFrom = commonUtil.getDateInGeneralFormat(transactions[i].defaulterEntry.dueFrom)
-                }
-                let temp = { "defaulterEntry": transactions[i].defaulterEntry }
-                delete transactions[i].defaulterEntry;
-                temp["pHArray"] = [transactions[i]];
+        for (let i = 0; i < allComplaint.length; i++) {
 
-                resArray[count] = temp;
-                countMap.set(transactions[i].defaulterEntryId, count);
-                count++;
+            // finding lowest duefrom date
+            if (allComplaint[i]?.invoices) {
+                for (let invoice of allComplaint[i]?.invoices) {
+                    if (allComplaint[i].dueFrom) {
+                        if (allComplaint[i].dueFrom > invoice.dueDate) {
+                            allComplaint[i].dueFrom = invoice.dueDate
+                        }
+                    } else {
+                        allComplaint[i].dueFrom = invoice.dueDate
+                    }
+                }
+                allComplaint[i].dueFrom = commonUtil.getDateInGeneralFormat(allComplaint[i].dueFrom)
             }
+            let temp = { "defaulterEntry": allComplaint[i] }
+
+            // below code will filter ratings only for current defaulter Entry Id by removing deleted null values
+            for (let j = 0; j < temp.defaulterEntry.debtor.ratings.length; j++) {
+                if (!(temp.defaulterEntry.id == temp.defaulterEntry.debtor.ratings[j].defaulterEntryId)) {
+                    delete temp.defaulterEntry.debtor.ratings[j];
+                }
+            }
+
+            temp.defaulterEntry.debtor.ratings = temp.defaulterEntry.debtor.ratings.filter(item => item !== null);
+
+            // delete transactions[i].defaulterEntry;
+
+            const defulterEntryRecord = transactions.filter(value => value.defaulterEntryId == temp.defaulterEntry.id)
+
+
+            temp["pHArray"] = defulterEntryRecord;
+
+            resArray[count] = temp;
+            /*  countMap.set(transactions[i].defaulterEntryId, count); */
+            count++;
+
         }
 
         // return all transactions
@@ -1554,6 +1630,7 @@ exports.getAllDocumentsNeededTransactionsForLoggedInUser = async (req, res) => {
             .send({ message: "Something went wrong", success: false });
     }
 }
+
 
 exports.getTransactionByPaymentId = async (req, res) => {
     try {
