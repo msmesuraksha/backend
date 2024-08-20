@@ -1023,6 +1023,7 @@ exports.approveOrRejectPayment = async (req, res) => {
                 // return res.status(200).send({ message: "Payment Status changed", success: true, response: result });
             }
             deftEntry.latestStatus = req.body.status
+            deftEntry.pendingWithAdminEmailId = req.token.adminDetails.emailId
             deftEntry.save()
             return res.status(200).send({ message: message, success: true, response: { paymentHistoriesChanged, deftEntry } });
         }
@@ -1266,6 +1267,7 @@ exports.askForSupportingDocument = async (req, res) => {
             ]);
 
             transaction.defaulterEntry.latestStatus = constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED
+            transaction.defaulterEntry.pendingWithAdminEmailId = req.token.adminDetails.emailId
             transaction.defaulterEntry.save()
             transactions.push(transaction)
 

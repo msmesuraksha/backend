@@ -19,6 +19,8 @@ module.exports = mongoose => {
         complaintNumber: String,
         adminShow: Boolean,
         pendingWith: String,
+        previousPendingWith: String,
+        pendingWithAdminEmailId: String
     },
         {
             timestamps: true
