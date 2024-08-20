@@ -13,6 +13,7 @@ const User = user_db.user;
 const config = process.env;
 const constants = require('../../constants/userConstants');
 const defaulterEntry = ComplainDb.defaulterEntry;
+const moment = require('moment');
 
 exports.updatePaymentHistoryForEscalate = function (escObj) {
     console.log(escObj);
@@ -84,8 +85,31 @@ exports.moveDocumentsWithPendingDocBackToAdminQueue = function () {
     return result;
 }
 
+
+
+exports.complainMovetoAdminTable = async () => {
+    try {
+        //  const fourDaysAgo = moment().subtract(4, 'days').toDate();
+        const batchSize = 100;
+        const tenMinutesAgo = moment().subtract(10, 'minutes').toDate();
+
+        const cursor = defaulterEntry.find({ createdAt: { $lte: tenMinutesAgo } }).batchSize(batchSize).cursor();
+
+        for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
+            await defaulterEntry.updateOne({ _id: doc._id }, { $set: { adminShow: true } });
+        }
+
+        console.log('Documents updated in batches.');
+    } catch (err) {
+        console.error('Error updating documents:', err);
+    } finally {
+        await defaulterEntry.close();
+    }
+}
+
 const _ = require('lodash');
 const { populate } = require("dotenv");
+const { de } = require("date-fns/locale");
 
 exports.assignPendingPaymentHistories = async function () {
     try {

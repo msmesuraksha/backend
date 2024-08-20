@@ -779,196 +779,393 @@ exports.approveOrRejectPayment = async (req, res) => {
 };
 
 
+// exports.askForSupportingDocument = async (req, res) => {
+//     try {
+//         if (req.body.payments && req.body.payments.length !== 0) {
+//             let transactions = [];
+//             let isDocumentsRequiredByCreditor = req.body.documentsRequiredFromCreditor.length === 0 ? false : true;
+//             let isDocumentsRequiredByDebtor = req.body.documentsRequiredFromDebtor.length === 0 ? false : true;
+//             for (let i = 0; i < req.body.payments.length; i++) {
+//                 let paymentId = req.body.payments[i].paymentId
+//                 let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+//                 let oldTransaction = await PaymentHistory.findById(paymentId);
+
+//                 let transaction = await paymentHistoryService.moveToDocumentsNeededQueue({
+//                     status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+//                     paymentId: paymentId,
+//                     pendingWith: "USER",
+//                     previousPendingWith: oldTransaction.pendingWith,
+//                     pendingWithAdminEmailId: req.token.adminDetails.emailId,
+//                     documentsRequiredFromCreditor: req.body.documentsRequiredFromCreditor,
+//                     documentsRequiredFromDebtor: req.body.documentsRequiredFromDebtor,
+//                     isDocumentsRequiredByCreditor: isDocumentsRequiredByCreditor,
+//                     isDocumentsRequiredByDebtor: isDocumentsRequiredByDebtor,
+//                     adminRemarksForDebtor: req.body.adminRemarksForDebtor,
+//                     adminRemarksForCreditor: req.body.adminRemarksForCreditor
+//                 }).populate([
+//                     { path: "defaulterEntry" },
+//                     { path: 'defaulterEntry', populate: ['invoices'] },
+//                     { path: "defaulterEntry.debtor" },
+//                     { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
+//                 ]);
+//                 transaction.defaulterEntry.latestStatus = constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED
+//                 transaction.defaulterEntry.save()
+//                 transactions.push(transaction)
+
+//                 // let logStamp = " [ "+new Date().toISOString()+" ] "+"Payment record/history moved to documents needed queue";
+//               /*   let logStamp = { timeStamp: new Date().toISOString(), message: "Admin has requested supporting documents", remarks: req.body.remarks };
+//                 let logMsg = [logStamp]; */
+
+//                 let logMsg = [];
+
+//                 if (i == 0) {
+//                     if (isDocumentsRequiredByDebtor) {
+//                         // mail for debtor
+//                         let replacements = [];
+//                         let userDetailsId = await Users.findOne({ "emailId": transaction.defaulterEntry.debtor.customerEmail })._id;
+//                         linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": userDetailsId, "type": "DEBTOR" }, "CUSTOM");
+//                         commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "DEBTOR", "linkToken": linkToken });
+//                         const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=DEBTOR`;
+//                         replacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
+//                         replacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
+//                         replacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForDebtor })
+
+//                         //TODO Bug: amount will be zero in case of DISPUTE_TYPE1
+//                         replacements.push({ target: "PAYMENT_AMOUNT", value: transaction.amtPaid })
+//                         let transactionType = ""
+//                         if (transaction.isDispute) {
+//                             transactionType = transaction.disputeType
+//                         } else {
+//                             transactionType = "Record Payment"
+//                         }
+//                         replacements.push({ target: "PAYMENT_TYPE", value: transactionType })
+//                         replacements.push({ target: "PAYMENT_DATE", value: transaction.paymentDate })
+//                         replacements.push({ target: "PAYMENT_MODE", value: transaction.paymentMode })
+
+//                         let companyOwnerEmail = await debtorService.getCompanyOwnerEmail(transaction.defaulterEntry.debtor.gstin);
+
+//                         //sending mail with upload link
+//                         let mailObj = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_DEBTOR, replacements)
+
+//                         let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(transaction.defaulterEntry.debtor.gstin);
+//                         mailObj.cc = ccEmails;
+//                         let debtorDocumentIds = []
+//                         debtorDocumentIds.push(transaction.debtorcacertificate);
+//                         debtorDocumentIds.push(...transaction.debtoradditionaldocuments);
+
+//                         if (companyOwnerEmail && companyOwnerEmail != "") {
+//                             mailObj.to = companyOwnerEmail;
+//                             mailObj.cc = [];
+//                             let mailObj2 = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_DEBTOR_WITHOUT_LINK, replacements)
+//                             mailObj2.cc = ccEmails;
+//                             mailObj2.to = transaction.defaulterEntry.debtor.customerEmail
+
+//                             //  mailUtility.sendEmailWithAttachments(mailObj2, debtorDocumentIds);
+//                         } else {
+//                             mailObj.to = transaction.defaulterEntry.debtor.customerEmail
+//                         }
+
+
+
+//                         //  mailUtility.sendEmailWithAttachments(mailObj, debtorDocumentIds);sendMail
+
+//                         mailUtility.sendMail(mailObj);
+
+
+//                         //log mail for debtor
+//                         // logMsg.push(" [ "+new Date().toISOString()+" ] "+"Mail sent to Buyer requesting for additional documents");
+//                         logMsg.push({ timeStamp: new Date().toISOString(), message: "Mail sent to Buyer requesting for additional documents", remarks: req.body.remarks });
+//                     }
+
+//                     if (isDocumentsRequiredByCreditor) {
+//                         let credMail = await userService.getCompanyOwner(transaction.defaulterEntry.creditorCompanyId).select("emailId");
+
+//                         // mail for creditor
+//                         let creditorReplacements = [];
+//                         let credUserDetailsId = await Users.findOne({ "emailId": credMail })._id;
+//                         linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": credUserDetailsId, "type": "CREDITOR" }, "CUSTOM");
+//                         commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "CREDITOR", "linkToken": linkToken });
+//                         const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=CREDITOR`;
+//                         creditorReplacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
+//                         creditorReplacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
+//                         creditorReplacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForCreditor })
+//                         //TODO Bug: amount will be zero in case of DISPUTE_TYPE1
+//                         creditorReplacements.push({ target: "PAYMENT_AMOUNT", value: transaction.amtPaid })
+//                         let transactionType = ""
+//                         if (transaction.isDispute) {
+//                             transactionType = transaction.disputeType
+//                         } else {
+//                             transactionType = "Record Payment"
+//                         }
+//                         creditorReplacements.push({ target: "PAYMENT_TYPE", value: transactionType })
+//                         creditorReplacements.push({ target: "PAYMENT_DATE", value: transaction.paymentDate })
+//                         creditorReplacements.push({ target: "PAYMENT_MODE", value: transaction.paymentMode })
+
+
+//                         let mailObj2 = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_CREDITOR, creditorReplacements)
+//                         mailObj2.to = credMail
+
+//                         let credDocumentIds = []
+//                         if (transaction.creditorcacertificate) {
+//                             credDocumentIds.push(transaction.creditorcacertificate);
+//                         }
+//                         if (transaction.creditoradditionaldocuments) {
+//                             credDocumentIds.push(...transaction.creditoradditionaldocuments);
+//                         }
+
+//                         if (transaction.attachments) {
+//                             credDocumentIds.push(...transaction.attachments);
+//                         }
+
+//                         let invoices = transaction.defaulterEntry.invoices;
+
+//                         for (let i = 0; i < invoices.length; i++) {
+//                             let invoice = invoices[i];
+//                             let invoiceDocuments = [];
+
+//                             if (invoice.purchaseOrderDocument) {
+//                                 invoiceDocuments.push(invoice.purchaseOrderDocument);
+//                             }
+//                             if (invoice.challanDocument) {
+//                                 invoiceDocuments.push(invoice.challanDocument);
+//                             }
+//                             if (invoice.invoiceDocument) {
+//                                 invoiceDocuments.push(invoice.invoiceDocument);
+//                             }
+//                             if (invoice.transportationDocument) {
+//                                 invoiceDocuments.push(invoice.transportationDocument);
+//                             }
+
+//                             credDocumentIds.push(...invoiceDocuments);
+//                         }
+
+//                         // mailUtility.sendEmailWithAttachments(mailObj2, credDocumentIds);
+
+//                         mailUtility.sendMail(mailObj2);
+
+//                         //log mail for Creditor
+//                         // logMsg.push(" [ "+new Date().toISOString()+" ] "+"Mail sent to Seller requesting for additional documents");
+//                         logMsg.push({ timeStamp: new Date().toISOString(), message: "Mail sent to Seller requesting for additional documents", remarks: req.body.remarks });
+//                     }
+//                 }
+
+
+
+//                 // logging
+//                 if (i == 0) {
+//                     if (existingLog) {
+//                         // If the document exists, update the logs array
+//                         existingLog.logs.push(...logMsg);
+//                         await existingLog.save();
+//                     }
+//                     else {
+//                         // create log
+//                         let log = await Logs.create({
+//                             pmtHistoryId: paymentId,  // pmtHistory id
+//                             logs: logMsg
+//                         });
+//                     }
+//                 }
+
+
+//             }
+//             return res.status(200).send({ message: "Transaction has now been moved to Document Needed Queue and mail is sent to Creditor and Debtor", success: true, response: transactions });
+//         }
+//     } catch (err) {
+//         console.log(err)
+//         res
+//             .status(500)
+//             .send({ message: "Something went wrong", reponse: "", success: false });
+//     }
+// };
+
 exports.askForSupportingDocument = async (req, res) => {
     try {
         if (req.body.payments && req.body.payments.length !== 0) {
             let transactions = [];
             let isDocumentsRequiredByCreditor = req.body.documentsRequiredFromCreditor.length === 0 ? false : true;
             let isDocumentsRequiredByDebtor = req.body.documentsRequiredFromDebtor.length === 0 ? false : true;
-            for (let i = 0; i < req.body.payments.length; i++) {
-                let paymentId = req.body.payments[i].paymentId
-                let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
-                let oldTransaction = await PaymentHistory.findById(paymentId);
 
-                let transaction = await paymentHistoryService.moveToDocumentsNeededQueue({
-                    status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
-                    paymentId: paymentId,
-                    pendingWith: "USER",
-                    previousPendingWith: oldTransaction.pendingWith,
-                    pendingWithAdminEmailId: req.token.adminDetails.emailId,
-                    documentsRequiredFromCreditor: req.body.documentsRequiredFromCreditor,
-                    documentsRequiredFromDebtor: req.body.documentsRequiredFromDebtor,
-                    isDocumentsRequiredByCreditor: isDocumentsRequiredByCreditor,
-                    isDocumentsRequiredByDebtor: isDocumentsRequiredByDebtor,
-                    adminRemarksForDebtor: req.body.adminRemarksForDebtor,
-                    adminRemarksForCreditor: req.body.adminRemarksForCreditor
-                }).populate([
-                    { path: "defaulterEntry" },
-                    { path: 'defaulterEntry', populate: ['invoices'] },
-                    { path: "defaulterEntry.debtor" },
-                    { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
-                ]);
-                transaction.defaulterEntry.latestStatus = constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED
-                transaction.defaulterEntry.save()
-                transactions.push(transaction)
+            let paymentId = req.body.payments[0].paymentId
+            let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+            let oldTransaction = await PaymentHistory.findById(paymentId);
 
-                // let logStamp = " [ "+new Date().toISOString()+" ] "+"Payment record/history moved to documents needed queue";
-              /*   let logStamp = { timeStamp: new Date().toISOString(), message: "Admin has requested supporting documents", remarks: req.body.remarks };
-                let logMsg = [logStamp]; */
+            let transaction = await paymentHistoryService.moveToDocumentsNeededQueue({
+                status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+                paymentId: paymentId,
+                pendingWith: "USER",
+                previousPendingWith: oldTransaction.pendingWith,
+                pendingWithAdminEmailId: req.token.adminDetails.emailId,
+                documentsRequiredFromCreditor: req.body.documentsRequiredFromCreditor,
+                documentsRequiredFromDebtor: req.body.documentsRequiredFromDebtor,
+                isDocumentsRequiredByCreditor: isDocumentsRequiredByCreditor,
+                isDocumentsRequiredByDebtor: isDocumentsRequiredByDebtor,
+                adminRemarksForDebtor: req.body.adminRemarksForDebtor,
+                adminRemarksForCreditor: req.body.adminRemarksForCreditor
+            }).populate([
+                { path: "defaulterEntry" },
+                { path: 'defaulterEntry', populate: ['invoices'] },
+                { path: "defaulterEntry.debtor" },
+                { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
+            ]);
 
-                let logMsg = [];
+            transaction.defaulterEntry.latestStatus = constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED
+            transaction.defaulterEntry.save()
+            transactions.push(transaction)
 
-                if (i == 0) {
-                    if (isDocumentsRequiredByDebtor) {
-                        // mail for debtor
-                        let replacements = [];
-                        let userDetailsId = await Users.findOne({ "emailId": transaction.defaulterEntry.debtor.customerEmail })._id;
-                        linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": userDetailsId, "type": "DEBTOR" }, "CUSTOM");
-                        commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "DEBTOR", "linkToken": linkToken });
-                        const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=DEBTOR`;
-                        replacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
-                        replacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
-                        replacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForDebtor })
-
-                        //TODO Bug: amount will be zero in case of DISPUTE_TYPE1
-                        replacements.push({ target: "PAYMENT_AMOUNT", value: transaction.amtPaid })
-                        let transactionType = ""
-                        if (transaction.isDispute) {
-                            transactionType = transaction.disputeType
-                        } else {
-                            transactionType = "Record Payment"
-                        }
-                        replacements.push({ target: "PAYMENT_TYPE", value: transactionType })
-                        replacements.push({ target: "PAYMENT_DATE", value: transaction.paymentDate })
-                        replacements.push({ target: "PAYMENT_MODE", value: transaction.paymentMode })
-
-                        let companyOwnerEmail = await debtorService.getCompanyOwnerEmail(transaction.defaulterEntry.debtor.gstin);
-
-                        //sending mail with upload link
-                        let mailObj = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_DEBTOR, replacements)
-
-                        let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(transaction.defaulterEntry.debtor.gstin);
-                        mailObj.cc = ccEmails;
-                        let debtorDocumentIds = []
-                        debtorDocumentIds.push(transaction.debtorcacertificate);
-                        debtorDocumentIds.push(...transaction.debtoradditionaldocuments);
-
-                        if (companyOwnerEmail && companyOwnerEmail != "") {
-                            mailObj.to = companyOwnerEmail;
-                            mailObj.cc = [];
-                            let mailObj2 = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_DEBTOR_WITHOUT_LINK, replacements)
-                            mailObj2.cc = ccEmails;
-                            mailObj2.to = transaction.defaulterEntry.debtor.customerEmail
-
-                            //  mailUtility.sendEmailWithAttachments(mailObj2, debtorDocumentIds);
-                        } else {
-                            mailObj.to = transaction.defaulterEntry.debtor.customerEmail
-                        }
+            let logMsg = [];
 
 
+            if (isDocumentsRequiredByDebtor) {
+                // mail for debtor
+                let replacements = [];
+                let userDetailsId = await Users.findOne({ "emailId": transaction.defaulterEntry.debtor.customerEmail })._id;
+                linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": userDetailsId, "type": "DEBTOR" }, "CUSTOM");
+                commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "DEBTOR", "linkToken": linkToken });
+                const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=DEBTOR`;
+                replacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
+                replacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
+                replacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForDebtor })
 
-                        //  mailUtility.sendEmailWithAttachments(mailObj, debtorDocumentIds);sendMail
+                //TODO Bug: amount will be zero in case of DISPUTE_TYPE1
+                replacements.push({ target: "PAYMENT_AMOUNT", value: transaction.amtPaid })
+                let transactionType = ""
+                if (transaction.isDispute) {
+                    transactionType = transaction.disputeType
+                } else {
+                    transactionType = "Record Payment"
+                }
+                replacements.push({ target: "PAYMENT_TYPE", value: transactionType })
+                replacements.push({ target: "PAYMENT_DATE", value: transaction.paymentDate })
+                replacements.push({ target: "PAYMENT_MODE", value: transaction.paymentMode })
 
-                        mailUtility.sendMail(mailObj);
+                let companyOwnerEmail = await debtorService.getCompanyOwnerEmail(transaction.defaulterEntry.debtor.gstin);
 
+                //sending mail with upload link
+                let mailObj = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_DEBTOR, replacements)
 
-                        //log mail for debtor
-                        // logMsg.push(" [ "+new Date().toISOString()+" ] "+"Mail sent to Buyer requesting for additional documents");
-                        logMsg.push({ timeStamp: new Date().toISOString(), message: "Mail sent to Buyer requesting for additional documents", remarks: req.body.remarks });
-                    }
+                let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(transaction.defaulterEntry.debtor.gstin);
+                mailObj.cc = ccEmails;
+                let debtorDocumentIds = []
+                debtorDocumentIds.push(transaction.debtorcacertificate);
+                debtorDocumentIds.push(...transaction.debtoradditionaldocuments);
 
-                    if (isDocumentsRequiredByCreditor) {
-                        let credMail = await userService.getCompanyOwner(transaction.defaulterEntry.creditorCompanyId).select("emailId");
+                if (companyOwnerEmail && companyOwnerEmail != "") {
+                    mailObj.to = companyOwnerEmail;
+                    mailObj.cc = [];
+                    let mailObj2 = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_DEBTOR_WITHOUT_LINK, replacements)
+                    mailObj2.cc = ccEmails;
+                    mailObj2.to = transaction.defaulterEntry.debtor.customerEmail
 
-                        // mail for creditor
-                        let creditorReplacements = [];
-                        let credUserDetailsId = await Users.findOne({ "emailId": credMail })._id;
-                        linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": credUserDetailsId, "type": "CREDITOR" }, "CUSTOM");
-                        commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "CREDITOR", "linkToken": linkToken });
-                        const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=CREDITOR`;
-                        creditorReplacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
-                        creditorReplacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
-                        creditorReplacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForCreditor })
-                        //TODO Bug: amount will be zero in case of DISPUTE_TYPE1
-                        creditorReplacements.push({ target: "PAYMENT_AMOUNT", value: transaction.amtPaid })
-                        let transactionType = ""
-                        if (transaction.isDispute) {
-                            transactionType = transaction.disputeType
-                        } else {
-                            transactionType = "Record Payment"
-                        }
-                        creditorReplacements.push({ target: "PAYMENT_TYPE", value: transactionType })
-                        creditorReplacements.push({ target: "PAYMENT_DATE", value: transaction.paymentDate })
-                        creditorReplacements.push({ target: "PAYMENT_MODE", value: transaction.paymentMode })
-
-
-                        let mailObj2 = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_CREDITOR, creditorReplacements)
-                        mailObj2.to = credMail
-
-                        let credDocumentIds = []
-                        if (transaction.creditorcacertificate) {
-                            credDocumentIds.push(transaction.creditorcacertificate);
-                        }
-                        if (transaction.creditoradditionaldocuments) {
-                            credDocumentIds.push(...transaction.creditoradditionaldocuments);
-                        }
-
-                        if (transaction.attachments) {
-                            credDocumentIds.push(...transaction.attachments);
-                        }
-
-                        let invoices = transaction.defaulterEntry.invoices;
-
-                        for (let i = 0; i < invoices.length; i++) {
-                            let invoice = invoices[i];
-                            let invoiceDocuments = [];
-
-                            if (invoice.purchaseOrderDocument) {
-                                invoiceDocuments.push(invoice.purchaseOrderDocument);
-                            }
-                            if (invoice.challanDocument) {
-                                invoiceDocuments.push(invoice.challanDocument);
-                            }
-                            if (invoice.invoiceDocument) {
-                                invoiceDocuments.push(invoice.invoiceDocument);
-                            }
-                            if (invoice.transportationDocument) {
-                                invoiceDocuments.push(invoice.transportationDocument);
-                            }
-
-                            credDocumentIds.push(...invoiceDocuments);
-                        }
-
-                        // mailUtility.sendEmailWithAttachments(mailObj2, credDocumentIds);
-
-                        mailUtility.sendMail(mailObj2);
-
-                        //log mail for Creditor
-                        // logMsg.push(" [ "+new Date().toISOString()+" ] "+"Mail sent to Seller requesting for additional documents");
-                        logMsg.push({ timeStamp: new Date().toISOString(), message: "Mail sent to Seller requesting for additional documents", remarks: req.body.remarks });
-                    }
+                    //  mailUtility.sendEmailWithAttachments(mailObj2, debtorDocumentIds);
+                } else {
+                    mailObj.to = transaction.defaulterEntry.debtor.customerEmail
                 }
 
 
 
-                // logging
-                if (i == 0) {
-                    if (existingLog) {
-                        // If the document exists, update the logs array
-                        existingLog.logs.push(...logMsg);
-                        await existingLog.save();
-                    }
-                    else {
-                        // create log
-                        let log = await Logs.create({
-                            pmtHistoryId: paymentId,  // pmtHistory id
-                            logs: logMsg
-                        });
-                    }
-                }
+                //  mailUtility.sendEmailWithAttachments(mailObj, debtorDocumentIds);sendMail
+
+                mailUtility.sendMail(mailObj);
 
 
+                //log mail for debtor
+                // logMsg.push(" [ "+new Date().toISOString()+" ] "+"Mail sent to Buyer requesting for additional documents");
+                logMsg.push({ timeStamp: new Date().toISOString(), message: "Mail sent to Buyer requesting for additional documents", remarks: req.body.remarks });
             }
+
+            if (isDocumentsRequiredByCreditor) {
+                let credMail = await userService.getCompanyOwner(transaction.defaulterEntry.creditorCompanyId).select("emailId");
+
+                // mail for creditor
+                let creditorReplacements = [];
+                let credUserDetailsId = await Users.findOne({ "emailId": credMail })._id;
+                linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": credUserDetailsId, "type": "CREDITOR" }, "CUSTOM");
+                commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "CREDITOR", "linkToken": linkToken });
+                const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=CREDITOR`;
+                creditorReplacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
+                creditorReplacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
+                creditorReplacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForCreditor })
+                //TODO Bug: amount will be zero in case of DISPUTE_TYPE1
+                creditorReplacements.push({ target: "PAYMENT_AMOUNT", value: transaction.amtPaid })
+                let transactionType = ""
+                if (transaction.isDispute) {
+                    transactionType = transaction.disputeType
+                } else {
+                    transactionType = "Record Payment"
+                }
+                creditorReplacements.push({ target: "PAYMENT_TYPE", value: transactionType })
+                creditorReplacements.push({ target: "PAYMENT_DATE", value: transaction.paymentDate })
+                creditorReplacements.push({ target: "PAYMENT_MODE", value: transaction.paymentMode })
+
+
+                let mailObj2 = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_CREDITOR, creditorReplacements)
+                mailObj2.to = credMail
+
+                let credDocumentIds = []
+                if (transaction.creditorcacertificate) {
+                    credDocumentIds.push(transaction.creditorcacertificate);
+                }
+                if (transaction.creditoradditionaldocuments) {
+                    credDocumentIds.push(...transaction.creditoradditionaldocuments);
+                }
+
+                if (transaction.attachments) {
+                    credDocumentIds.push(...transaction.attachments);
+                }
+
+                let invoices = transaction.defaulterEntry.invoices;
+
+                for (let i = 0; i < invoices.length; i++) {
+                    let invoice = invoices[i];
+                    let invoiceDocuments = [];
+
+                    if (invoice.purchaseOrderDocument) {
+                        invoiceDocuments.push(invoice.purchaseOrderDocument);
+                    }
+                    if (invoice.challanDocument) {
+                        invoiceDocuments.push(invoice.challanDocument);
+                    }
+                    if (invoice.invoiceDocument) {
+                        invoiceDocuments.push(invoice.invoiceDocument);
+                    }
+                    if (invoice.transportationDocument) {
+                        invoiceDocuments.push(invoice.transportationDocument);
+                    }
+
+                    credDocumentIds.push(...invoiceDocuments);
+                }
+
+                // mailUtility.sendEmailWithAttachments(mailObj2, credDocumentIds);
+
+                mailUtility.sendMail(mailObj2);
+
+                //log mail for Creditor
+                // logMsg.push(" [ "+new Date().toISOString()+" ] "+"Mail sent to Seller requesting for additional documents");
+                logMsg.push({ timeStamp: new Date().toISOString(), message: "Mail sent to Seller requesting for additional documents", remarks: req.body.remarks });
+            }
+
+
+
+
+            // logging
+
+            if (existingLog) {
+                // If the document exists, update the logs array
+                existingLog.logs.push(...logMsg);
+                await existingLog.save();
+            }
+            else {
+                // create log
+                let log = await Logs.create({
+                    pmtHistoryId: paymentId,  // pmtHistory id
+                    logs: logMsg
+                });
+            }
+
+
+
+
             return res.status(200).send({ message: "Transaction has now been moved to Document Needed Queue and mail is sent to Creditor and Debtor", success: true, response: transactions });
         }
     } catch (err) {

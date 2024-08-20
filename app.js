@@ -67,7 +67,7 @@ db.mongoose.set('strictQuery', true);
 const connectOptions = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000, // Increase timeout to 5000ms
+    serverSelectionTimeoutMS: 30000, // Increase timeout to 5000ms
     socketTimeoutMS: 45000 // Increase socket timeout
 };
 
