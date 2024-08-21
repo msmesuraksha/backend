@@ -549,22 +549,6 @@ exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatu
 
     let additionalFilters = {};
 
-    if (filters.roleBasedFilter) {
-        additionalFilters = {
-            pendingWith: adminRole,
-            $or: [
-                { pendingWithAdminEmailId: { $exists: false } },
-                { pendingWithAdminEmailId: "" },
-                { pendingWithAdminEmailId: emailId }
-            ],
-        };
-    } else {
-        additionalFilters = {
-            $or: [
-                { userSuspended: false }, { userSuspended: { $exists: false } }
-            ],
-        };
-    }
     console.log(additionalFilters);
     // let statusPass = [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED];
 
