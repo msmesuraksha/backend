@@ -649,8 +649,15 @@ exports.uploadSupportingDocuments = async (req, res) => {
         }
       }
 
-      pHistory.debtorcacertificate = mongoose.Types.ObjectId(req.body.debtorcacertificate)
-      pHistory.debtoradditionaldocuments = req.body.debtoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
+      if (req.body.debtorcacertificate) {
+        pHistory.debtorcacertificate = mongoose.Types.ObjectId(req.body.debtorcacertificate)
+      }
+
+      if (req.body.debtoradditionaldocuments) {
+        pHistory.debtoradditionaldocuments = req.body.debtoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
+      }
+
+
       pHistory.isDocumentsRequiredByDebtor = false
 
       let replacements = [];
@@ -689,8 +696,13 @@ exports.uploadSupportingDocuments = async (req, res) => {
         }
       }
 
-      pHistory.creditorcacertificate = mongoose.Types.ObjectId(req.body.creditorcacertificate)
-      pHistory.creditoradditionaldocuments = req.body.creditoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
+      if (req.body.creditorcacertificate) {
+        pHistory.creditorcacertificate = mongoose.Types.ObjectId(req.body.creditorcacertificate)
+      }
+
+      if (req.body.creditoradditionaldocuments) {
+        pHistory.creditoradditionaldocuments = req.body.creditoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
+      }
 
       for (let item of req.body.attachment) {
         let invoices = pHistory.defaulterEntry.invoices
