@@ -1567,13 +1567,11 @@ exports.getAllDocumentsNeededTransactionsForLoggedInUser = async (req, res) => {
                 $nin: [constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW]
             }
         }
-        let paymentFiler = {
-            pendingWithAdminEmailId: req.token.adminDetails.emailId,
-        }
+
 
         let allComplaint = await paymentHistoryService.getTransactionsWithDefaulterFilters(companiesFilter)
 
-        let transactions = await paymentHistoryService.getTransactionsWithPaymentFilter(paymentFiler);
+        let transactions = await paymentHistoryService.getTransactionsWithPaymentFilter();
 
         let transBackup = [];
         transBackup = transactions;
