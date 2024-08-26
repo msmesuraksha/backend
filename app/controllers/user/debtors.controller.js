@@ -283,6 +283,8 @@ exports.companySearch = async (req, res) => {
                     $or: [{ userSuspended: false }, { userSuspended: { $exists: false } }]
                 }).populate("invoices")
 
+                if (defaulterEntries.length == 0) return
+
                 // Calculate total amount pending for the debtor
                 const totalAmountPending = defaulterEntries.reduce((total, entry) => total + Number(entry.totalAmount), 0);
 
@@ -297,7 +299,7 @@ exports.companySearch = async (req, res) => {
                 return debtor;
             }));
 
-            const groupedDebtors = debtorsWithDefaulterEntries.reduce((acc, debtor) => {
+            const groupedDebtors = debtorsWithDefaulterEntries.filter(item => item !== undefined).reduce((acc, debtor) => {
                 if (!acc[debtor.gstin]) {
                     acc[debtor.gstin] = [];
                 }
