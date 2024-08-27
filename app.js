@@ -115,6 +115,11 @@ cron.schedule('*/10 * * * *', () => {
     paymentHistoryService.complainMovetoAdminTable();
 });
 
+// cron.schedule('*/10 * * * *', () => {
+//     console.log("latetStatus check ");
+//     paymentHistoryService.complainDocumentNotUpload();
+// });
+
 // set port, listen for requests
 const PORT = process.env.PORT || "8080";
 app.listen(PORT, () => {

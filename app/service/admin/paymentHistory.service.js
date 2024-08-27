@@ -109,6 +109,25 @@ exports.complainMovetoAdminTable = async () => {
     }
 }
 
+exports.complainDocumentNotUpload = async () => {
+    try {
+        const tenMinutesAgo = moment().subtract(10, 'minutes').toDate();
+        const fourDaysAgo = moment().subtract(4, 'days').toDate();
+        const query = {
+            updatedAt: { $lt: tenMinutesAgo },
+            latestStatus: 'DOCUMENTS_NEEDED'
+        };
+
+        const update = { $set: { latestStatus: 'DOCUMENTS_NOT_UPLOADED' } };
+
+        const result = await defaulterEntry.updateMany(query, update);
+
+        console.log(`${result.modifiedCount} documents were updated.`);
+    } catch (err) {
+        console.error('Error updating documents:', err);
+    }
+}
+
 const _ = require('lodash');
 const { populate } = require("dotenv");
 const { de } = require("date-fns/locale");
