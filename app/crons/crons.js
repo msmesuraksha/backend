@@ -20,7 +20,12 @@ cron.schedule('2 0 * * *', function () {
 
 //cron.schedule('0 0 * * *', paymentHistoryService.moveDocumentsWithPendingDocBackToAdminQueue);
 
-cron.schedule('*/10 * * * *', paymentHistoryService.complainMovetoAdminTable);
+//cron.schedule('*/10 * * * *', paymentHistoryService.complainMovetoAdminTable);
+
+/* cron.schedule('* * * * * *', () => {
+  console.log("datachaking on ");
+  paymentHistoryService.complainMovetoAdminTable();
+}); */
 
 
 

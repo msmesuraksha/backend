@@ -3,6 +3,8 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const sessions = require('express-session');
 
+const cron = require('node-cron');
+
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 const shell = require('shelljs');
@@ -11,6 +13,10 @@ const schedule = require('node-schedule');
 const user_db = require("./app/models/user");
 const admin_db = require("./app/models/admin");
 const commondb = require("./app/models/common");
+
+const service = require("./app/service/admin");
+const paymentHistoryService = service.paymentHistoryService
+
 const Subscription = user_db.subscription;
 const SubscriptionIdRemQuotaMapping = user_db.subscriptionIdRemQuotaMapping;
 const SubscriptionPkgAPIQuotaMapping = admin_db.subscriptionPkgAPIQuotaMapping;
@@ -103,6 +109,11 @@ require("./app/routes/admin/paymentHistory.routes")(app);
 require("./app/routes/common/fileUpload.routes")(app);
 require("./app/routes/common/logs.routes")(app);
 require("./app/routes/user/defaulterEntry.routes")(app);
+
+cron.schedule('*/10 * * * *', () => {
+    console.log("datachaking on ");
+    paymentHistoryService.complainMovetoAdminTable();
+});
 
 // set port, listen for requests
 const PORT = process.env.PORT || "8080";

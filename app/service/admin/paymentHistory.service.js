@@ -89,21 +89,23 @@ exports.moveDocumentsWithPendingDocBackToAdminQueue = function () {
 
 exports.complainMovetoAdminTable = async () => {
     try {
-        //  const fourDaysAgo = moment().subtract(4, 'days').toDate();
-        const batchSize = 100;
+
         const tenMinutesAgo = moment().subtract(10, 'minutes').toDate();
 
-        const cursor = defaulterEntry.find({ createdAt: { $lte: tenMinutesAgo } }).batchSize(batchSize).cursor();
+        const fourDaysAgo = moment().subtract(4, 'days').toDate();
 
-        for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
-            await defaulterEntry.updateOne({ _id: doc._id }, { $set: { adminShow: true } });
-        }
+        const query = {
+            createdAt: { $lt: tenMinutesAgo },
+            adminShow: { $ne: true } // Only update if adminShow is not already true
+        };
 
-        console.log('Documents updated in batches.');
+        const update = { $set: { adminShow: true } };
+
+        const result = await defaulterEntry.updateMany(query, update);
+
+        console.log(`${result.modifiedCount} documents were updated.`);
     } catch (err) {
         console.error('Error updating documents:', err);
-    } finally {
-        await defaulterEntry.close();
     }
 }
 
