@@ -20,7 +20,50 @@ module.exports = mongoose => {
         adminShow: Boolean,
         pendingWith: String,
         previousPendingWith: String,
-        pendingWithAdminEmailId: String
+        pendingWithAdminEmailId: String,
+        documentsPendingSince: Date,
+        isDocumentsRequiredByCreditor: Boolean,
+        isDocumentsRequiredByDebtor: Boolean,
+        attachments: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'documents',
+        }],
+
+        documentsRequiredFromCreditor: [String],
+        documentsRequiredFromDebtor: [String],
+        creditorcacertificate: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'documents',
+        },
+        creditoradditionaldocuments: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'documents',
+        }],
+        debtorcacertificate: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'documents',
+        },
+        debtoradditionaldocuments: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'documents',
+        }],
+        supportingDocuments: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'documents',
+        }],
+
+        disputedInvoiceSupportingDocuments: [{
+            invoice: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'sendBillTransactions',
+            },
+            isCheckedForSupportingDocs: Boolean,
+            documents: [{
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'documents',
+            }]
+        }],
+
     },
         {
             timestamps: true
