@@ -1564,7 +1564,7 @@ exports.getAllDocumentsNeededTransactionsForLoggedInUser = async (req, res) => {
         let companiesFilter = {
             pendingWithAdminEmailId: req.token.adminDetails.emailId,
             latestStatus: {
-                $nin: [constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW]
+                $nin: [constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW, constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NOT_UPLOADED]
             }
         }
 

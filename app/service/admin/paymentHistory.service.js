@@ -122,7 +122,7 @@ exports.complainDocumentNotUpload = async () => {
 
         const result = await defaulterEntry.updateMany(query, update);
 
-        console.log(`${result.modifiedCount} documents were updated.`);
+        console.log(`${result.modifiedCount} documents latest were updated.`);
     } catch (err) {
         console.error('Error updating documents:', err);
     }
@@ -750,7 +750,7 @@ exports.getAllComplainList = async function (adminRole, emailId, filters, reqSta
             ],
             $or: [
                 {
-                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
+                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW, constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NOT_UPLOADED] }
                 },
             ]
         };
@@ -758,7 +758,7 @@ exports.getAllComplainList = async function (adminRole, emailId, filters, reqSta
         additionalFilters = {
             $or: [
                 {
-                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW] }
+                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW, constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NOT_UPLOADED] }
                 },
                 { userSuspended: false }, { userSuspended: { $exists: false } }
             ],

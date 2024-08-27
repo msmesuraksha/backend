@@ -110,15 +110,15 @@ require("./app/routes/common/fileUpload.routes")(app);
 require("./app/routes/common/logs.routes")(app);
 require("./app/routes/user/defaulterEntry.routes")(app);
 
-cron.schedule('*/10 * * * *', () => {
-    console.log("datachaking on ");
-    paymentHistoryService.complainMovetoAdminTable();
-});
-
 // cron.schedule('*/10 * * * *', () => {
-//     console.log("latetStatus check ");
-//     paymentHistoryService.complainDocumentNotUpload();
+//     console.log("datachaking on ");
+//     paymentHistoryService.complainMovetoAdminTable();
 // });
+
+cron.schedule('*/10 * * * *', () => {
+    console.log("latetStatus check ");
+    paymentHistoryService.complainDocumentNotUpload();
+});
 
 // set port, listen for requests
 const PORT = process.env.PORT || "8080";
