@@ -210,7 +210,7 @@ exports.createPaymentHistory = function (details, newStatus, newPendingWith, new
     });
 }
 
-exports.getDocumentsRequiredFromPaymentId = async function (paymentId, userType) {
+/* exports.getDocumentsRequiredFromPaymentId = async function (paymentId, userType) {
     let pH = await PaymentHistory.findOne({ _id: paymentId }).populate(
         [
             { path: 'defaulterEntry', populate: [{ path: 'invoices', populate: ['purchaseOrderDocument', 'challanDocument', 'invoiceDocument', 'transportationDocument'] }] }
@@ -218,6 +218,31 @@ exports.getDocumentsRequiredFromPaymentId = async function (paymentId, userType)
     // console.log(pH)
     console.log(pH);
     return pH;
+} */
+
+exports.getDocumentsRequiredFromPaymentId = async function (defaulterEntryId, userType) {
+    let def = await defaulterEntry.findOne({ _id: defaulterEntryId }).populate(
+        [
+            { path: 'invoices' },
+            {
+                path: 'invoices', populate: [
+                    { path: 'purchaseOrderDocument' },
+                    { path: 'challanDocument' },
+                    { path: 'invoiceDocument' },
+                    { path: 'transportationDocument' },
+                    { path: 'otherDocuments' },
+                ]
+            },
+            // { path: 'debtor' },
+            // { path: 'debtor', populate: 'ratings' },
+            {
+                path: 'debtor', populate: { path: 'ratings', populate: ['question'] }
+            },
+            { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" }
+        ]);
+    // console.log(pH)
+    console.log(def);
+    return def;
 }
 
 // exports.getAllTrasaction = async function (adminRole, emailId, filters, reqStatus) {

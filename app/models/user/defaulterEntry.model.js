@@ -24,6 +24,8 @@ module.exports = mongoose => {
         documentsPendingSince: Date,
         isDocumentsRequiredByCreditor: Boolean,
         isDocumentsRequiredByDebtor: Boolean,
+        adminRemarksForDebtor: String,
+        adminRemarksForCreditor: String,
         attachments: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'documents',

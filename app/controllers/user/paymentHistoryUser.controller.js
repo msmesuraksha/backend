@@ -86,6 +86,579 @@ exports.confirmPaymentByCreditor = async (req, res) => {
 
 
 
+// exports.getTransactionsPendingForDocs = async (req, res) => {
+//   try {
+//     let debtorIds = await Debtors.find({ gstin: req.token.companyDetails.gstin }).select('_id').lean();
+//     debtorIds = debtorIds.map(id => id._id)
+//     // let pHistoryCreditor = await PaymentHistory.find({
+//     //     status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+//     // }).populate({
+//     //     path: 'defaulterEntry',
+//     //     match: { creditorCompanyId: req.token.companyDetails.id }
+//     //   }).exec();
+//     //   pHistoryCreditor = pHistoryCreditor.filter(ph => ph.defaulterEntry);
+
+//     let pHistoryCreditor = await PaymentHistory.aggregate([
+//       {
+//         $match: {
+//           status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+//           isDocumentsRequiredByCreditor: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "defaulterentries", // This should be the name of the collection, in plural and lowercase
+//           localField: "defaulterEntry",
+//           foreignField: "_id",
+//           as: "defaulterEntry"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry", // Deconstructs the array field from the previous $lookup stage
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $match: {
+//           "defaulterEntry.creditorCompanyId": req.token.companyDetails.id
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "debtors",
+//           localField: "defaulterEntry.debtor",
+//           foreignField: "_id",
+//           as: "defaulterEntry.debtor"
+//         }
+//       },
+//       // Unwind debtor for further population
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry.debtor",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "companies",
+//           let: { companyId: "$defaulterEntry.creditorCompanyId" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $eq: ["$_id", { $toObjectId: "$$companyId" }]
+//                 }
+//               }
+//             }
+//           ],
+//           as: "defaulterEntry.creditor"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry.creditor",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       //   {
+//       //     $lookup: {
+//       //         from: "sendbilltransactions", // Replace with your actual invoices collection name
+//       //         localField: "defaulterEntry.invoices",
+//       //         foreignField: "_id",
+//       //         as: "defaulterEntry.invoices"
+//       //     }
+//       // },
+//       {
+//         $lookup: {
+//           from: "sendbilltransactions", // Replace with your actual invoices collection name
+//           localField: "defaulterEntry.invoices",
+//           foreignField: "_id",
+//           as: "defaulterEntry.invoices",
+//           pipeline: [
+//             // Additional $lookup stages to populate fields within each invoice
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "purchaseOrderDocument",
+//                 foreignField: "_id",
+//                 as: "purchaseOrderDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "challanDocument",
+//                 foreignField: "_id",
+//                 as: "challanDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "invoiceDocument",
+//                 foreignField: "_id",
+//                 as: "invoiceDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "transportationDocument",
+//                 foreignField: "_id",
+//                 as: "transportationDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "otherDocuments",
+//                 foreignField: "_id",
+//                 as: "otherDocuments"
+//               }
+//             },
+//           ]
+//         }
+
+//       }
+
+//       // {
+//       //     $project: {
+//       //         defaulterEntry: 0 // Optionally remove the temporary field
+//       //     }
+//       // }
+//     ]);
+
+
+//     console.log(pHistoryCreditor);
+
+//     let pHistoryDebtor = await PaymentHistory.aggregate([
+//       {
+//         $match: {
+//           status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+//           isDocumentsRequiredByDebtor: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "defaulterentries", // This should be the name of the collection, in plural and lowercase
+//           localField: "defaulterEntry",
+//           foreignField: "_id",
+//           as: "defaulterEntry"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry", // Deconstructs the array field from the previous $lookup stage
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+
+//       {
+//         $lookup: {
+//           from: "debtors",
+//           localField: "defaulterEntry.debtor",
+//           foreignField: "_id",
+//           as: "defaulterEntry.debtor"
+//         }
+//       },
+//       // Unwind debtor for further population
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry.debtor",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $match: {
+//           "defaulterEntry.debtor._id": { $in: debtorIds } // Assuming debtorIds is an array of ObjectId values
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "companies",
+//           let: { companyId: "$defaulterEntry.creditorCompanyId" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $eq: ["$_id", { $toObjectId: "$$companyId" }]
+//                 }
+//               }
+//             }
+//           ],
+//           as: "defaulterEntry.creditor"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry.creditor",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "sendbilltransactions", // Replace with your actual invoices collection name
+//           localField: "defaulterEntry.invoices",
+//           foreignField: "_id",
+//           as: "defaulterEntry.invoices",
+//           pipeline: [
+//             // Additional $lookup stages to populate fields within each invoice
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "purchaseOrderDocument",
+//                 foreignField: "_id",
+//                 as: "purchaseOrderDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "challanDocument",
+//                 foreignField: "_id",
+//                 as: "challanDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "invoiceDocument",
+//                 foreignField: "_id",
+//                 as: "invoiceDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "transportationDocument",
+//                 foreignField: "_id",
+//                 as: "transportationDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "otherDocuments",
+//                 foreignField: "_id",
+//                 as: "otherDocuments"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "disputeSupportingDocumentsForInvoice",
+//                 foreignField: "_id",
+//                 as: "disputeSupportingDocumentsForInvoice"
+//               }
+//             }
+//           ]
+//         }
+
+//       }
+//     ]);
+
+//     //   pHistoryCreditor = pHistoryCreditor.filter(ph => ph.defaulterEntry);
+
+
+//     return res.status(200).send({ message: "List fethed", success: true, response: { transactionsRaisedByMe: pHistoryCreditor, transactionsSentToMe: pHistoryDebtor } });
+
+
+//   } catch (err) {
+//     console.log(err)
+//     res
+//       .status(500)
+//       .send({ message: "Something went wrong", reponse: "", success: false });
+//   }
+// };
+
+
+// exports.getTransactionsPendingForDocs = async (req, res) => {
+//   try {
+//     let debtorIds = await Debtors.find({ gstin: req.token.companyDetails.gstin }).select('_id').lean();
+//     debtorIds = debtorIds.map(id => id._id)
+//     // let pHistoryCreditor = await PaymentHistory.find({
+//     //     status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+//     // }).populate({
+//     //     path: 'defaulterEntry',
+//     //     match: { creditorCompanyId: req.token.companyDetails.id }
+//     //   }).exec();
+//     //   pHistoryCreditor = pHistoryCreditor.filter(ph => ph.defaulterEntry);
+
+//     let pHistoryCreditor = await PaymentHistory.aggregate([
+//       {
+//         $match: {
+//           status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+//           isDocumentsRequiredByCreditor: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "defaulterentries", // This should be the name of the collection, in plural and lowercase
+//           localField: "defaulterEntry",
+//           foreignField: "_id",
+//           as: "defaulterEntry"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry", // Deconstructs the array field from the previous $lookup stage
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $match: {
+//           "defaulterEntry.creditorCompanyId": req.token.companyDetails.id
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "debtors",
+//           localField: "defaulterEntry.debtor",
+//           foreignField: "_id",
+//           as: "defaulterEntry.debtor"
+//         }
+//       },
+//       // Unwind debtor for further population
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry.debtor",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "companies",
+//           let: { companyId: "$defaulterEntry.creditorCompanyId" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $eq: ["$_id", { $toObjectId: "$$companyId" }]
+//                 }
+//               }
+//             }
+//           ],
+//           as: "defaulterEntry.creditor"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry.creditor",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       //   {
+//       //     $lookup: {
+//       //         from: "sendbilltransactions", // Replace with your actual invoices collection name
+//       //         localField: "defaulterEntry.invoices",
+//       //         foreignField: "_id",
+//       //         as: "defaulterEntry.invoices"
+//       //     }
+//       // },
+//       {
+//         $lookup: {
+//           from: "sendbilltransactions", // Replace with your actual invoices collection name
+//           localField: "defaulterEntry.invoices",
+//           foreignField: "_id",
+//           as: "defaulterEntry.invoices",
+//           pipeline: [
+//             // Additional $lookup stages to populate fields within each invoice
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "purchaseOrderDocument",
+//                 foreignField: "_id",
+//                 as: "purchaseOrderDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "challanDocument",
+//                 foreignField: "_id",
+//                 as: "challanDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "invoiceDocument",
+//                 foreignField: "_id",
+//                 as: "invoiceDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "transportationDocument",
+//                 foreignField: "_id",
+//                 as: "transportationDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "otherDocuments",
+//                 foreignField: "_id",
+//                 as: "otherDocuments"
+//               }
+//             },
+//           ]
+//         }
+
+//       }
+
+//       // {
+//       //     $project: {
+//       //         defaulterEntry: 0 // Optionally remove the temporary field
+//       //     }
+//       // }
+//     ]);
+
+
+//     console.log(pHistoryCreditor);
+
+//     let pHistoryDebtor = await PaymentHistory.aggregate([
+//       {
+//         $match: {
+//           status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+//           isDocumentsRequiredByDebtor: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "defaulterentries", // This should be the name of the collection, in plural and lowercase
+//           localField: "defaulterEntry",
+//           foreignField: "_id",
+//           as: "defaulterEntry"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry", // Deconstructs the array field from the previous $lookup stage
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+
+//       {
+//         $lookup: {
+//           from: "debtors",
+//           localField: "defaulterEntry.debtor",
+//           foreignField: "_id",
+//           as: "defaulterEntry.debtor"
+//         }
+//       },
+//       // Unwind debtor for further population
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry.debtor",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $match: {
+//           "defaulterEntry.debtor._id": { $in: debtorIds } // Assuming debtorIds is an array of ObjectId values
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "companies",
+//           let: { companyId: "$defaulterEntry.creditorCompanyId" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $eq: ["$_id", { $toObjectId: "$$companyId" }]
+//                 }
+//               }
+//             }
+//           ],
+//           as: "defaulterEntry.creditor"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$defaulterEntry.creditor",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "sendbilltransactions", // Replace with your actual invoices collection name
+//           localField: "defaulterEntry.invoices",
+//           foreignField: "_id",
+//           as: "defaulterEntry.invoices",
+//           pipeline: [
+//             // Additional $lookup stages to populate fields within each invoice
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "purchaseOrderDocument",
+//                 foreignField: "_id",
+//                 as: "purchaseOrderDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "challanDocument",
+//                 foreignField: "_id",
+//                 as: "challanDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "invoiceDocument",
+//                 foreignField: "_id",
+//                 as: "invoiceDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "transportationDocument",
+//                 foreignField: "_id",
+//                 as: "transportationDocument"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "otherDocuments",
+//                 foreignField: "_id",
+//                 as: "otherDocuments"
+//               }
+//             },
+//             {
+//               $lookup: {
+//                 from: "documents", // Replace with the actual collection name
+//                 localField: "disputeSupportingDocumentsForInvoice",
+//                 foreignField: "_id",
+//                 as: "disputeSupportingDocumentsForInvoice"
+//               }
+//             }
+//           ]
+//         }
+
+//       }
+//     ]);
+
+//     //   pHistoryCreditor = pHistoryCreditor.filter(ph => ph.defaulterEntry);
+
+
+//     return res.status(200).send({ message: "List fethed", success: true, response: { transactionsRaisedByMe: pHistoryCreditor, transactionsSentToMe: pHistoryDebtor } });
+
+
+//   } catch (err) {
+//     console.log(err)
+//     res
+//       .status(500)
+//       .send({ message: "Something went wrong", reponse: "", success: false });
+//   }
+// };
+
 exports.getTransactionsPendingForDocs = async (req, res) => {
   try {
     let debtorIds = await Debtors.find({ gstin: req.token.companyDetails.gstin }).select('_id').lean();
@@ -98,10 +671,10 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
     //   }).exec();
     //   pHistoryCreditor = pHistoryCreditor.filter(ph => ph.defaulterEntry);
 
-    let pHistoryCreditor = await PaymentHistory.aggregate([
+    let pHistoryCreditor = await DefaulterEntry.aggregate([
       {
         $match: {
-          status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+          latestStatus: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
           isDocumentsRequiredByCreditor: true
         }
       },
@@ -232,7 +805,7 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
 
     console.log(pHistoryCreditor);
 
-    let pHistoryDebtor = await PaymentHistory.aggregate([
+    let pHistoryDebtor = await DefaulterEntry.aggregate([
       {
         $match: {
           status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,

@@ -1238,38 +1238,50 @@ exports.approveOrRejectPayment = async (req, res) => {
 
 exports.askForSupportingDocument = async (req, res) => {
     try {
-        if (req.body.payments && req.body.payments.length !== 0) {
+        if (req.body.defaulterEntryId && req.body.defaulterEntryId !== "") {
             let transactions = [];
+
             let isDocumentsRequiredByCreditor = req.body.documentsRequiredFromCreditor.length === 0 ? false : true;
             let isDocumentsRequiredByDebtor = req.body.documentsRequiredFromDebtor.length === 0 ? false : true;
 
-            let paymentId = req.body.payments[0].paymentId
-            let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+            let defaulterEntryId = req.body.defaulterEntryId
+            let existingLog = await Logs.findOne({ defaulterEntryId: defaulterEntryId });
+
+            let transaction = await DefaulterEntry.findOne({ _id: req.body.defaulterEntryId });
+            transaction.latestStatus = constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED
+            transaction.pendingWith = "USER"
+            transaction.pendingWithAdminEmailId = req.token.adminDetails.emailId
+            transaction.documentsRequiredFromCreditor = req.body.documentsRequiredFromCreditor
+            transaction.documentsRequiredFromDebtor = req.body.documentsRequiredFromDebtor
+            transaction.isDocumentsRequiredByCreditor = isDocumentsRequiredByCreditor
+            transaction.isDocumentsRequiredByDebtor = isDocumentsRequiredByDebtor
+            transaction.adminRemarksForDebtor = req.body.adminRemarksForDebtor
+            transaction.adminRemarksForCreditor = req.body.adminRemarksForCreditor
+            transaction.save()
+            transactions.push(transaction)
+
+
             let oldTransaction = await PaymentHistory.findById(paymentId);
 
-            let transaction = await paymentHistoryService.moveToDocumentsNeededQueue({
-                status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
-                paymentId: paymentId,
-                pendingWith: "USER",
-                previousPendingWith: oldTransaction.pendingWith,
-                pendingWithAdminEmailId: req.token.adminDetails.emailId,
-                documentsRequiredFromCreditor: req.body.documentsRequiredFromCreditor,
-                documentsRequiredFromDebtor: req.body.documentsRequiredFromDebtor,
-                isDocumentsRequiredByCreditor: isDocumentsRequiredByCreditor,
-                isDocumentsRequiredByDebtor: isDocumentsRequiredByDebtor,
-                adminRemarksForDebtor: req.body.adminRemarksForDebtor,
-                adminRemarksForCreditor: req.body.adminRemarksForCreditor
-            }).populate([
-                { path: "defaulterEntry" },
-                { path: 'defaulterEntry', populate: ['invoices'] },
-                { path: "defaulterEntry.debtor" },
-                { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
-            ]);
+            /*    let transaction = await paymentHistoryService.moveToDocumentsNeededQueue({
+                   status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+                   paymentId: paymentId,
+                   pendingWith: "USER",
+                   previousPendingWith: oldTransaction.pendingWith,
+                   pendingWithAdminEmailId: req.token.adminDetails.emailId,
+                   documentsRequiredFromCreditor: req.body.documentsRequiredFromCreditor,
+                   documentsRequiredFromDebtor: req.body.documentsRequiredFromDebtor,
+                   isDocumentsRequiredByCreditor: isDocumentsRequiredByCreditor,
+                   isDocumentsRequiredByDebtor: isDocumentsRequiredByDebtor,
+                   adminRemarksForDebtor: req.body.adminRemarksForDebtor,
+                   adminRemarksForCreditor: req.body.adminRemarksForCreditor
+               }).populate([
+                   { path: "defaulterEntry" },
+                   { path: 'defaulterEntry', populate: ['invoices'] },
+                   { path: "defaulterEntry.debtor" },
+                   { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
+               ]); */
 
-            transaction.defaulterEntry.latestStatus = constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED
-            transaction.defaulterEntry.pendingWithAdminEmailId = req.token.adminDetails.emailId
-            transaction.defaulterEntry.save()
-            transactions.push(transaction)
 
             let logMsg = [];
 
@@ -1277,9 +1289,9 @@ exports.askForSupportingDocument = async (req, res) => {
             if (isDocumentsRequiredByDebtor) {
                 // mail for debtor
                 let replacements = [];
-                let userDetailsId = await Users.findOne({ "emailId": transaction.defaulterEntry.debtor.customerEmail })._id;
-                linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": userDetailsId, "type": "DEBTOR" }, "CUSTOM");
-                commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "DEBTOR", "linkToken": linkToken });
+                let userDetailsId = await Users.findOne({ "emailId": transaction.debtor.customerEmail })._id;
+                linkToken = jwtUtil.generateCustomToken({ "defaulterEntryId": transaction._id, "userId": userDetailsId, "type": "DEBTOR" }, "CUSTOM");
+                commonService.tokenService.saveTokenToDb({ "defaulterEntryId": defaulterEntryId, "userType": "DEBTOR", "linkToken": linkToken });
                 const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=DEBTOR`;
                 replacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
                 replacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
@@ -1333,13 +1345,13 @@ exports.askForSupportingDocument = async (req, res) => {
             }
 
             if (isDocumentsRequiredByCreditor) {
-                let credMail = await userService.getCompanyOwner(transaction.defaulterEntry.creditorCompanyId).select("emailId");
+                let credMail = await userService.getCompanyOwner(transaction.creditorCompanyId).select("emailId");
 
                 // mail for creditor
                 let creditorReplacements = [];
                 let credUserDetailsId = await Users.findOne({ "emailId": credMail })._id;
-                linkToken = jwtUtil.generateCustomToken({ "paymentId": transaction.id, "userId": credUserDetailsId, "type": "CREDITOR" }, "CUSTOM");
-                commonService.tokenService.saveTokenToDb({ "paymentId": paymentId, "userType": "CREDITOR", "linkToken": linkToken });
+                linkToken = jwtUtil.generateCustomToken({ "defaulterEntryId": transaction._id, "userId": credUserDetailsId, "type": "CREDITOR" }, "CUSTOM");
+                commonService.tokenService.saveTokenToDb({ "defaulterEntryId": defaulterEntryId, "userType": "CREDITOR", "linkToken": linkToken });
                 const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=CREDITOR`;
                 creditorReplacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
                 creditorReplacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
@@ -1416,7 +1428,8 @@ exports.askForSupportingDocument = async (req, res) => {
             else {
                 // create log
                 let log = await Logs.create({
-                    pmtHistoryId: paymentId,  // pmtHistory id
+                    pmtHistoryId: paymentId,
+                    defaulterEntryId: defaulterEntryId,  // pmtHistory id
                     logs: logMsg
                 });
             }
@@ -1436,20 +1449,46 @@ exports.askForSupportingDocument = async (req, res) => {
 
 
 
+// exports.getDocumentsRequiredFromPaymentId = async (req, res) => {
+//     try {
+//         const token = jwtUtil.verifyCustomToken(req.body.token);
+//         console.log(token);
+//         if (req.body.token) {
+//             let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "paymentId": token.tokenDetails.paymentId, "userType": token.tokenDetails.type });
+//             if (!dbToken) {
+//                 return res.status(403).json({ message: 'Token is not valid or has expired.', success: false, response: "" });
+//             }
+//         }
+//         if (token) {
+//             const _paymentId = token.tokenDetails.paymentId;
+//             const _userType = token.tokenDetails.type;
+//             const result = await service.paymentHistoryService.getDocumentsRequiredFromPaymentId(_paymentId, _userType);
+//             return res.status(200).send({ message: "Records returned", success: true, response: result });
+//         } else {
+//             return res.status(401).send({ success: false, message: 'Failed to authenticate token.' });
+//         }
+//     } catch (err) {
+//         console.log(err)
+//         res
+//             .status(500)
+//             .send({ message: "Something went wrong", reponse: "", success: false });
+//     }
+// }
+
 exports.getDocumentsRequiredFromPaymentId = async (req, res) => {
     try {
         const token = jwtUtil.verifyCustomToken(req.body.token);
         console.log(token);
         if (req.body.token) {
-            let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "paymentId": token.tokenDetails.paymentId, "userType": token.tokenDetails.type });
+            let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "defaulterEntryId": token.tokenDetails.defaulterEntryId, "userType": token.tokenDetails.type });
             if (!dbToken) {
                 return res.status(403).json({ message: 'Token is not valid or has expired.', success: false, response: "" });
             }
         }
         if (token) {
-            const _paymentId = token.tokenDetails.paymentId;
+            const _defaulterEntryId = token.tokenDetails.defaulterEntryId;
             const _userType = token.tokenDetails.type;
-            const result = await service.paymentHistoryService.getDocumentsRequiredFromPaymentId(_paymentId, _userType);
+            const result = await service.paymentHistoryService.getDocumentsRequiredFromPaymentId(_defaulterEntryId, _userType);
             return res.status(200).send({ message: "Records returned", success: true, response: result });
         } else {
             return res.status(401).send({ success: false, message: 'Failed to authenticate token.' });
