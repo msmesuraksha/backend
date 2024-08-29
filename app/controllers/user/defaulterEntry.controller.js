@@ -310,7 +310,7 @@ exports.initiatePaymentVerification = async (req, res) => {
             let logStamp = { timeStamp: new Date().toISOString(), message: "Complaint disputed", remarks: req.body.debtorRemarks };
             const log = await Logs.create({
                 pmtHistoryId: pmtHistory._id,
-                defaulterEntryId: req.body.defaulterEntryId,
+                defaultId: req.body.defaulterEntryId,
                 logs: [logStamp]
             });
 
@@ -324,7 +324,7 @@ exports.initiatePaymentVerification = async (req, res) => {
             let logStamp = { timeStamp: new Date().toISOString(), message: "Payment recorded by Seller", remarks: req.body.debtorRemarks };
             const log = await Logs.create({
                 pmtHistoryId: pmtHistory._id,
-                defaulterEntryId: req.body.defaulterEntryId,  // pmtHistory id
+                defaultId: req.body.defaulterEntryId,  // pmtHistory id
                 logs: [logStamp]
             });
             let deftEntry = await DefaulterEntry.findOne({ _id: req.body.defaulterEntryId });

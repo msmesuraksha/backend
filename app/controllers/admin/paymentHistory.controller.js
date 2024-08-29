@@ -564,7 +564,7 @@ function mapMalTemplateSeller(status) {
 //                         await existingLog.save();
 //                     } else {
 //                         // create log
-//                         let log = await Logs.create({
+//                         let log = await 
 //                             pmtHistoryId: paymentId,  // pmtHistory id
 //                             logs: [logMsg]
 //                         });
@@ -1245,7 +1245,9 @@ exports.askForSupportingDocument = async (req, res) => {
             let isDocumentsRequiredByDebtor = req.body.documentsRequiredFromDebtor.length === 0 ? false : true;
 
             let defaulterEntryId = req.body.defaulterEntryId
-            let existingLog = await Logs.findOne({ defaulterEntryId: defaulterEntryId });
+            let existingLog = await Logs.findOne({ defaultId: defaulterEntryId });
+
+            let oldTransaction = await DefaulterEntry.findById(defaulterEntryId)
 
             let transaction = await DefaulterEntry.findOne({ _id: req.body.defaulterEntryId }).populate([
                 { path: "debtor", select: "customerEmail gstin" },
@@ -1262,6 +1264,7 @@ exports.askForSupportingDocument = async (req, res) => {
             ]);
             transaction.latestStatus = constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED
             transaction.pendingWith = "USER"
+            transaction.previousPendingWith = oldTransaction.pendingWith
             transaction.pendingWithAdminEmailId = req.token.adminDetails.emailId
             transaction.documentsRequiredFromCreditor = req.body.documentsRequiredFromCreditor
             transaction.documentsRequiredFromDebtor = req.body.documentsRequiredFromDebtor
@@ -1440,7 +1443,7 @@ exports.askForSupportingDocument = async (req, res) => {
             else {
                 // create log
                 let log = await Logs.create({
-                    defaulterEntryId: defaulterEntryId,  // pmtHistory id
+                    defaultId: defaulterEntryId,  // pmtHistory id
                     logs: logMsg
                 });
             }

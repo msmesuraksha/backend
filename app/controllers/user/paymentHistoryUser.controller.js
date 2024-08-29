@@ -1170,49 +1170,58 @@ exports.uploadSupportingDocuments = async (req, res) => {
     if (req.body.token) {
       let token = jwtUtil.verifyCustomToken(req.body.token)
       let tokenType = token.tokenType
-      req.body.paymentId = token.tokenDetails.paymentId;
+      req.body.defaulterEntryId = token.tokenDetails.defaulterEntryId;
       req.body.type = token.tokenDetails.type;
     }
 
-    const pHistory = await PaymentHistory.findOne({ _id: req.body.paymentId }).populate(
+    const defaulter = await DefaulterEntry.findOne({ _id: req.body.defaulterEntryId }).populate(
       [
         // { path: 'defaulterEntry.debtor' },
-        { path: 'defaulterEntry', populate: ['invoices'] },
-        { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin" } }
+        { path: 'invoices' },
+        {
+          path: 'invoices', populate: [
+            { path: 'purchaseOrderDocument' },
+            { path: 'challanDocument' },
+            { path: 'invoiceDocument' },
+            { path: 'transportationDocument' },
+            { path: 'otherDocuments' },
+          ]
+        },
+        { path: "debtor", select: "customerEmail gstin" },
       ]);
-    if (!pHistory) {
-      return res.status(200).json({ message: 'Payment history id is not valid.', success: false, response: "" });
+    if (!defaulter) {
+      return res.status(200).json({ message: 'defaulter id is not valid.', success: false, response: "" });
     }
-    let paymentId = pHistory._id.toString();
+    let defaulterId = defaulter._id.toString();
     if (req.body.type == "DEBTOR") {
 
       if (req.body.token) {
         let token = jwtUtil.verifyCustomToken(req.body.token)
-        let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "paymentId": token.tokenDetails.paymentId, "userType": "DEBTOR" });
+        let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "defaulterEntryId": token.tokenDetails.defaulterEntryId, "userType": "DEBTOR" });
         if (!dbToken) {
           return res.status(403).json({ message: 'Token is not valid or has expired.', success: false, response: "" });
         }
       }
 
       if (req.body.debtorcacertificate) {
-        pHistory.debtorcacertificate = mongoose.Types.ObjectId(req.body.debtorcacertificate)
+        defaulter.debtorcacertificate = mongoose.Types.ObjectId(req.body.debtorcacertificate)
       }
 
       if (req.body.debtoradditionaldocuments) {
-        pHistory.debtoradditionaldocuments = req.body.debtoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
+        defaulter.debtoradditionaldocuments = req.body.debtoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
       }
 
 
-      pHistory.isDocumentsRequiredByDebtor = false
+      defaulter.isDocumentsRequiredByDebtor = false
 
       let replacements = [];
       let mailObj = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_UPLOADED_DEBTOR, replacements)
-      mailObj.to = pHistory.defaulterEntry.debtor.customerEmail
-      let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(pHistory.defaulterEntry.debtor.gstin);
+      mailObj.to = defaulter.debtor.customerEmail
+      let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(defaulter.debtor.gstin);
       mailObj.cc = ccEmails;
       mailUtility.sendMail(mailObj)
 
-      let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+      let existingLog = await Logs.findOne({ defaultId: defaulterId });
       // let logMsg = " [ "+new Date().toISOString()+" ] "+"Additional documents uploaded by Buyer";
       let logMsg = { timeStamp: new Date().toISOString(), message: "Additional documents uploaded by Buyer" };
       if (existingLog) {
@@ -1222,35 +1231,35 @@ exports.uploadSupportingDocuments = async (req, res) => {
       } else {
         // create log
         let log = await Logs.create({
-          pmtHistoryId: paymentId,  // pmtHistory id
+          defaultId: defaulterId,  // pmtHistory id
           logs: [logMsg]
         });
       }
       if (req.body.token) {
         let token = jwtUtil.verifyCustomToken(req.body.token)
-        await commonService.tokenService.deleteTokenFromDb({ "paymentId": token.tokenDetails.paymentId, "userType": "DEBTOR" });
+        await commonService.tokenService.deleteTokenFromDb({ "defaulterEntryId": token.tokenDetails.defaulterEntryId, "userType": "DEBTOR" });
       }
     }
     else if (req.body.type == "CREDITOR") {
 
       if (req.body.token) {
         let token = jwtUtil.verifyCustomToken(req.body.token)
-        let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "paymentId": token.tokenDetails.paymentId, "userType": "CREDITOR" });
+        let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "defaulterEntryId": token.tokenDetails.defaulterEntryId, "userType": "CREDITOR" });
         if (!dbToken) {
           return res.status(403).json({ message: 'Token is not valid or has expired.', success: false, response: "" });
         }
       }
 
       if (req.body.creditorcacertificate) {
-        pHistory.creditorcacertificate = mongoose.Types.ObjectId(req.body.creditorcacertificate)
+        defaulter.creditorcacertificate = mongoose.Types.ObjectId(req.body.creditorcacertificate)
       }
 
       if (req.body.creditoradditionaldocuments) {
-        pHistory.creditoradditionaldocuments = req.body.creditoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
+        defaulter.creditoradditionaldocuments = req.body.creditoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
       }
 
       for (let item of req.body.attachment) {
-        let invoices = pHistory.defaulterEntry.invoices
+        let invoices = defaulter.invoices
         let invoice = invoices.find(obj => obj._id.toString() == item.invoiceId)
         if (invoice) {
           if (item.purchaseOrderDocument)
@@ -1264,16 +1273,16 @@ exports.uploadSupportingDocuments = async (req, res) => {
           await invoice.save()
         }
       }
-      pHistory.isDocumentsRequiredByCreditor = false
+      defaulter.isDocumentsRequiredByCreditor = false
 
-      let credMail = await userService.getCompanyOwner(pHistory.defaulterEntry.creditorCompanyId).select("emailId");
+      let credMail = await userService.getCompanyOwner(defaulter.creditorCompanyId).select("emailId");
 
       let replacements = [];
       let mailObj = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_UPLOADED_CREDITOR, replacements)
       mailObj.to = credMail
       mailUtility.sendMail(mailObj)
 
-      let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+      let existingLog = await Logs.findOne({ defaultId: defaulterId });
       // let logMsg = " [ "+new Date().toISOString()+" ] "+"Additional documents uploaded by Seller";
       let logMsg = { timeStamp: new Date().toISOString(), message: "Additional documents uploaded by Seller" };
       if (existingLog) {
@@ -1283,41 +1292,40 @@ exports.uploadSupportingDocuments = async (req, res) => {
       } else {
         // create log
         let log = await Logs.create({
-          pmtHistoryId: paymentId,  // pmtHistory id
+          defaultId: defaulterId,  // pmtHistory id
           logs: [logMsg]
         });
       }
       if (req.body.token) {
         let token = jwtUtil.verifyCustomToken(req.body.token)
-        await commonService.tokenService.deleteTokenFromDb({ "paymentId": token.tokenDetails.paymentId, "userType": "CREDITOR" });
+        await commonService.tokenService.deleteTokenFromDb({ "defaulterEntryId": token.tokenDetails.defaulterEntryId, "userType": "CREDITOR" });
       }
     }
-    if (pHistory.isDocumentsRequiredByCreditor == false && pHistory.isDocumentsRequiredByDebtor == false) {
-      pHistory.status = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
-      pHistory.latestStatus = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
-      pHistory.pendingWith = pHistory.previousPendingWith
+    if (defaulter.isDocumentsRequiredByCreditor == false && defaulter.isDocumentsRequiredByDebtor == false) {
+      defaulter.latestStatus = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
+      defaulter.pendingWith = defaulter.previousPendingWith
 
-      const deftEnt = await DefaulterEntry.findByIdAndUpdate(pHistory.defaulterEntryId, {
+      const deftEnt = await DefaulterEntry.findByIdAndUpdate(defaulterId, {
         latestStatus: constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW,
       }).populate("invoices");
 
-      const pHistories = await PaymentHistory.find({ defaulterEntryId: pHistory.defaulterEntryId })
+      // const pHistories = await PaymentHistory.find({ defaulterEntryId: defaulter.defaulterEntryId })
 
-      if (pHistories) {
-        for (let pHistory of pHistories) {
-          pHistory.status = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
-          pHistory.isDocumentsRequiredByCreditor == false
-          pHistory.isDocumentsRequiredByDebtor == false
-          pHistory.pendingWith = pHistory.previousPendingWith
-          await pHistory.save();
-        }
-      }
+      /*    if (pHistories) {
+           for (let defaulter of pHistories) {
+             defaulter.status = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
+             defaulter.isDocumentsRequiredByCreditor == false
+             defaulter.isDocumentsRequiredByDebtor == false
+             defaulter.pendingWith = defaulter.previousPendingWith
+             await defaulter.save();
+           }
+         } */
 
 
 
-      let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+      let existingLog = await Logs.findOne({ defaultId: defaulterId });
       // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case Pending with L1";
-      let logMsg = { timeStamp: new Date().toISOString(), message: "Case Pending with L1" };
+      let logMsg = { timeStamp: new Date().toISOString(), message: `Case Pending with ${defaulter.pendingWith}` };
       if (existingLog) {
         // If the document exists, update the logs array
         existingLog.logs.push(logMsg);
@@ -1325,14 +1333,14 @@ exports.uploadSupportingDocuments = async (req, res) => {
       } else {
         // create log
         let log = await Logs.create({
-          pmtHistoryId: paymentId,  // pmtHistory id
+          defaultId: defaulterId,  // pmtHistory id
           logs: [logMsg]
         });
       }
     }
-    await pHistory.save();
+    await defaulter.save();
 
-    return res.status(200).send({ message: "Successful upload", success: true, response: pHistory });
+    return res.status(200).send({ message: "Successful upload", success: true, response: defaulter });
 
 
   } catch (err) {
