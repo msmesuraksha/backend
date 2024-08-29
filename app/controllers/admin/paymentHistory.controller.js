@@ -785,8 +785,40 @@ exports.approveOrRejectPayment = async (req, res) => {
         let message = "";
         let result = null;
         let paymentHistoriesChanged = [];
-        if (req.body.payments && req.body.payments.length !== 0) {
-            let deftEntry = await DefaulterEntry.findById(req.body.defaulterEntryId);
+        if (req.body.defaulterEntryId && req.body.defaulterEntryId !== "") {
+            let deftEntry = await DefaulterEntry.findById(req.body.defaulterEntryId).populate(
+                [
+                    { path: 'invoices' },
+                    {
+                        path: 'invoices', populate: [
+                            { path: 'purchaseOrderDocument' },
+                            { path: 'challanDocument' },
+                            { path: 'invoiceDocument' },
+                            { path: 'transportationDocument' },
+                            { path: 'otherDocuments' },
+                        ]
+                    },
+                    { path: "debtor", select: "customerEmail gstin companyName" },
+                    { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" },
+                ]);
+
+            let defaulterId = req.body.defaulterEntryId;
+            let existingLog = await Logs.findOne({ defaultId: defaulterId });
+            let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
+
+            const logUpdateDataBase = async (logMsg) => {
+
+                if (existingLog) {
+                    existingLog.logs.push(logMsg);
+                    await existingLog.save();
+                } else {
+                    let log = await Logs.create({
+                        defaultId: defaulterId,  // Defaulter id
+                        logs: [logMsg]
+                    });
+                }
+
+            }
 
             if (req.body.status == "APPROVED") {
                 for (let i = 0; i < req.body.payments.length; i++) {
@@ -850,64 +882,32 @@ exports.approveOrRejectPayment = async (req, res) => {
                 // return res.status(200).send({ message: "Payment Approved!", success: true, response: {result, deftE} });
 
             } else if (req.body.status == "COMPLAINT_APPROVED") {
-
-                let payment = req.body.payments[0]
-                let paymentId = payment.paymentId;
-                let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
-                let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
-                status = req.body.status;
-                result = await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, pendingWithAdminEmailId: req.token.adminDetails.emailId });
-
                 currAdmin.transactionsProcessed++;
                 currAdmin.save();
 
-                // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
                 let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to COMPLAINT APPROVED by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
 
+                logUpdateDataBase(logMsg)
 
-                if (existingLog) {
-                    // If the document exists, update the logs array
-                    existingLog.logs.push(logMsg);
-                    await existingLog.save();
-                } else {
-                    // create log
-                    let log = await Logs.create({
-                        pmtHistoryId: paymentId,  // pmtHistory id
-                        logs: [logMsg]
-                    });
-                }
-
-
-
-                paymentHistoriesChanged.push(result);
-
-
-                const pHistory = await PaymentHistory.findOne({ _id: req.body.payments[0].paymentId }).populate(
-                    [
-                        { path: 'defaulterEntry', populate: ['invoices'] },
-                        { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin companyName" } },
-                        { path: 'defaulterEntry', populate: { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" } },
-                    ]);
                 let replacementsBuyer = [];
-                console.log(mapStatus(req.body.status));
 
-                replacementsBuyer.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
-                replacementsBuyer.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+                replacementsBuyer.push({ target: "BUYER_NAME", value: deftEntry.debtor.companyName })
+                replacementsBuyer.push({ target: "SELLER_NAME", value: deftEntry.creditorCompanyId.companyName })
                 let mailObjBuyer = await mailController.getMailTemplate("COMPLAINT_APPROVED_BUYER", replacementsBuyer)
 
-                mailObjBuyer.to = pHistory.defaulterEntry.debtor.customerEmail;
-                let ccEmailsBuyer = await debtorService.getDebtorAndCompanyOwnerEmails(pHistory.defaulterEntry.debtor.gstin);
+                mailObjBuyer.to = deftEntry.debtor.customerEmail;
+                let ccEmailsBuyer = await debtorService.getDebtorAndCompanyOwnerEmails(deftEntry.debtor.gstin);
                 mailObjBuyer.cc = ccEmailsBuyer;
 
                 //  seller 
 
                 let replacementsSeller = [];
-                replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
-                replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+                replacementsSeller.push({ target: "BUYER_NAME", value: deftEntry.debtor.companyName })
+                replacementsSeller.push({ target: "SELLER_NAME", value: deftEntry.creditorCompanyId.companyName })
                 let mailObjSeller = await mailController.getMailTemplate("COMPLAINT_APPROVED_SELLER", replacementsSeller)
 
-                mailObjSeller.to = pHistory.defaulterEntry.creditorCompanyId.emailId;
-                let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(pHistory.defaulterEntry.creditorCompanyId.gstin);
+                mailObjSeller.to = deftEntry.creditorCompanyId.emailId;
+                let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(deftEntry.creditorCompanyId.gstin);
                 mailObjSeller.cc = ccEmailsSeller;
 
                 mailUtility.sendMail(mailObjBuyer)
@@ -918,12 +918,6 @@ exports.approveOrRejectPayment = async (req, res) => {
 
             } else {
 
-                let payment = req.body.payments[0]
-                let paymentId = payment.paymentId;
-                let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
-                let currAdmin = await Admin.findOne({ "emailId": req.token.adminDetails.emailId });
-                status = req.body.status;
-                result = await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, pendingWithAdminEmailId: req.token.adminDetails.emailId });
 
                 currAdmin.transactionsProcessed++;
                 currAdmin.save();
@@ -938,41 +932,17 @@ exports.approveOrRejectPayment = async (req, res) => {
                 // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment status changed to "+(req.body.status)+" by "+req.token.adminDetails.adminRole;
                 let logMsg = { timeStamp: new Date().toISOString(), message: "Payment status / opinion changed to " + (currentStatus) + " by " + req.token.adminDetails.adminRole, remarks: req.body.remarks };
 
-
-                if (existingLog) {
-                    // If the document exists, update the logs array
-                    existingLog.logs.push(logMsg);
-                    await existingLog.save();
-                } else {
-                    // create log
-                    let log = await Logs.create({
-                        pmtHistoryId: paymentId,  // pmtHistory id
-                        logs: [logMsg]
-                    });
-                }
-
-
-
-                paymentHistoriesChanged.push(result);
-
-
-                const pHistory = await PaymentHistory.findOne({ _id: req.body.payments[0].paymentId }).populate(
-                    [
-                        { path: 'defaulterEntry', populate: ['invoices'] },
-                        { path: "defaulterEntry", populate: { path: "debtor", select: "customerEmail gstin companyName" } },
-                        { path: 'defaulterEntry', populate: { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" } },
-                    ]);
-                console.log(mapStatus(req.body.status));
+                logUpdateDataBase(logMsg)
 
                 if (req.body.status == 'FULLY_RESOLVED_PAYMENT_RECIEVED') {
                     let replacementsBuyer = [];
                     replacementsBuyer.push({ target: "PAYMENT_STATUS", value: mapStatus(req.body.status) })
-                    replacementsBuyer.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
-                    replacementsBuyer.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+                    replacementsBuyer.push({ target: "BUYER_NAME", value: deftEntry.debtor.companyName })
+                    replacementsBuyer.push({ target: "SELLER_NAME", value: deftEntry.creditorCompanyId.companyName })
                     let mailObjBuyer = await mailController.getMailTemplate("PAYMENT_STATUS_CHANGED_BUYER", replacementsBuyer)
 
-                    mailObjBuyer.to = pHistory.defaulterEntry.debtor.customerEmail;
-                    let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(pHistory.defaulterEntry.debtor.gstin);
+                    mailObjBuyer.to = deftEntry.debtor.customerEmail;
+                    let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(deftEntry.debtor.gstin);
                     mailObjBuyer.cc = ccEmails;
                     console.log(mailObjBuyer.to);
 
@@ -980,12 +950,12 @@ exports.approveOrRejectPayment = async (req, res) => {
 
                     let replacementsSeller = [];
                     replacementsSeller.push({ target: "PAYMENT_STATUS", value: mapStatus(req.body.status) })
-                    replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
-                    replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+                    replacementsSeller.push({ target: "BUYER_NAME", value: deftEntry.debtor.companyName })
+                    replacementsSeller.push({ target: "SELLER_NAME", value: deftEntry.creditorCompanyId.companyName })
                     let mailObjSeller = await mailController.getMailTemplate("PAYMENT_STATUS_CHANGED_SELLER", replacementsSeller)
 
-                    mailObjSeller.to = pHistory.defaulterEntry.creditorCompanyId.emailId;
-                    let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(pHistory.defaulterEntry.creditorCompanyId.gstin);
+                    mailObjSeller.to = deftEntry.creditorCompanyId.emailId;
+                    let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(deftEntry.creditorCompanyId.gstin);
                     mailObjSeller.cc = ccEmailsSeller;
 
 
@@ -994,25 +964,25 @@ exports.approveOrRejectPayment = async (req, res) => {
                 } else {
 
                     let replacementsBuyer = [];
-                    replacementsBuyer.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
-                    replacementsBuyer.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+                    replacementsBuyer.push({ target: "BUYER_NAME", value: deftEntry.debtor.companyName })
+                    replacementsBuyer.push({ target: "SELLER_NAME", value: deftEntry.creditorCompanyId.companyName })
                     let mailObjBuyer = await mailController.getMailTemplate(mapMalTemplateBuyer(req.body.status), replacementsBuyer)
 
-                    mailObjBuyer.to = pHistory.defaulterEntry.debtor.customerEmail;
-                    let ccEmailsBuyer = await debtorService.getDebtorAndCompanyOwnerEmails(pHistory.defaulterEntry.debtor.gstin);
+                    mailObjBuyer.to = deftEntry.debtor.customerEmail;
+                    let ccEmailsBuyer = await debtorService.getDebtorAndCompanyOwnerEmails(deftEntry.debtor.gstin);
                     mailObjBuyer.cc = ccEmailsBuyer;
 
                     //  seller 
 
                     let replacementsSeller = [];
-                    replacementsSeller.push({ target: "BUYER_NAME", value: pHistory.defaulterEntry.debtor.companyName })
-                    replacementsSeller.push({ target: "SELLER_NAME", value: pHistory.defaulterEntry.creditorCompanyId.companyName })
+                    replacementsSeller.push({ target: "BUYER_NAME", value: deftEntry.debtor.companyName })
+                    replacementsSeller.push({ target: "SELLER_NAME", value: deftEntry.creditorCompanyId.companyName })
                     let mailObjSeller = await mailController.getMailTemplate(mapMalTemplateSeller(req.body.status), replacementsSeller)
                     mailObjSeller.subject = await mailController.getMailSubjectTemplate(mapMalTemplateSeller(req.body.status), replacementsSeller)
 
-                    mailObjSeller.to = pHistory.defaulterEntry.creditorCompanyId.emailId;
-                    //  mailObjSeller.subject = `Status of Your Complaint Against ${pHistory.defaulterEntry.debtor.companyName} - Buyer May Be Defaulter`
-                    let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(pHistory.defaulterEntry.creditorCompanyId.gstin);
+                    mailObjSeller.to = deftEntry.creditorCompanyId.emailId;
+                    //  mailObjSeller.subject = `Status of Your Complaint Against ${deftEntry.debtor.companyName} - Buyer May Be Defaulter`
+                    let ccEmailsSeller = await debtorService.getCompanyOwnerEmail(deftEntry.creditorCompanyId.gstin);
                     mailObjSeller.cc = ccEmailsSeller;
 
                     mailUtility.sendMail(mailObjBuyer)
@@ -1025,7 +995,7 @@ exports.approveOrRejectPayment = async (req, res) => {
             deftEntry.latestStatus = req.body.status
             deftEntry.pendingWithAdminEmailId = req.token.adminDetails.emailId
             deftEntry.save()
-            return res.status(200).send({ message: message, success: true, response: { paymentHistoriesChanged, deftEntry } });
+            return res.status(200).send({ message: message, success: true, response: { deftEntry } });
         }
     } catch (err) {
         console.log(err)
