@@ -803,6 +803,73 @@ exports.deleteSubPkgAPIQtMappingById = async (req, res) => {
 //     }
 // };
 
+// exports.escalateRequest = async (req, res) => {
+//     try {
+//         // will receive paymentId and escalate in the body
+//         let pendingWith = "";
+//         // let paymentId = req.body.paymentId;
+//         let defaultersComplain = ''
+//         let result = null;
+//         if (req.body.defaulterEntryId && req.body.defaulterEntryId !== "") {
+//             let paymentId = req.body.payments[0].paymentId
+//             if (req.token.adminDetails.adminRole == "L1") {
+
+//                 pendingWith = "L2";
+
+//                 defaultersComplain = DefaulterEntry.findByIdAndUpdate({ _id: req.body.defaulterEntryId }, { pendingWith: pendingWith, pendingWithAdminEmailId: "" })
+//                 result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
+//                 let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+//                 // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L2";
+//                 let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L2", remarks: req.body.remarks };
+
+
+//                 if (existingLog) {
+//                     // If the document exists, update the logs array
+//                     existingLog.logs.push(logMsg);
+//                     await existingLog.save();
+//                 } else {
+//                     // create log
+//                     let log = await Logs.create({
+//                         pmtHistoryId: paymentId,  // pmtHistory id
+//                         logs: [logMsg]
+//                     });
+//                 }
+
+
+//             } if (req.token.adminDetails.adminRole == "L2") {
+//                 pendingWith = "L3";
+//                 defaultersComplain = DefaulterEntry.findByIdAndUpdate({ _id: req.body.defaulterEntryId }, { pendingWith: pendingWith, pendingWithAdminEmailId: "" })
+//                 result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
+//                 let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+//                 // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L3";
+//                 let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L3", remarks: req.body.remarks };
+
+
+//                 if (existingLog) {
+//                     // If the document exists, update the logs array
+//                     existingLog.logs.push(logMsg);
+//                     await existingLog.save();
+//                 } else {
+//                     // create log
+//                     let log = await Logs.create({
+//                         pmtHistoryId: paymentId,  // pmtHistory id
+//                         logs: [logMsg]
+//                     });
+//                 }
+
+
+//             }
+
+//         }
+//         return res.status(200).send({ message: "Issue Escalated", success: true, response: defaultersComplain });
+//     } catch (err) {
+//         console.log(err)
+//         res
+//             .status(500)
+//             .send({ message: "Something went wrong", reponse: "", success: false });
+//     }
+// };
+
 exports.escalateRequest = async (req, res) => {
     try {
         // will receive paymentId and escalate in the body
@@ -810,13 +877,16 @@ exports.escalateRequest = async (req, res) => {
         // let paymentId = req.body.paymentId;
         let defaultersComplain = ''
         let result = null;
-        if (req.body.payments && req.body.payments.length !== 0) {
-            let paymentId = req.body.payments[0].paymentId
+        if (req.body.defaulterEntryId && req.body.defaulterEntryId !== "") {
+            //let paymentId = req.body.payments[0].paymentId
             if (req.token.adminDetails.adminRole == "L1") {
+
                 pendingWith = "L2";
+
                 defaultersComplain = DefaulterEntry.findByIdAndUpdate({ _id: req.body.defaulterEntryId }, { pendingWith: pendingWith, pendingWithAdminEmailId: "" })
-                result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
-                let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+
+
+                let existingLog = await Logs.findOne({ defaultId: req.body.defaulterEntryId });
                 // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L2";
                 let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L2", remarks: req.body.remarks };
 
@@ -828,7 +898,7 @@ exports.escalateRequest = async (req, res) => {
                 } else {
                     // create log
                     let log = await Logs.create({
-                        pmtHistoryId: paymentId,  // pmtHistory id
+                        defaultId: req.body.defaulterEntryId,  // pmtHistory id
                         logs: [logMsg]
                     });
                 }
@@ -836,9 +906,11 @@ exports.escalateRequest = async (req, res) => {
 
             } if (req.token.adminDetails.adminRole == "L2") {
                 pendingWith = "L3";
+
                 defaultersComplain = DefaulterEntry.findByIdAndUpdate({ _id: req.body.defaulterEntryId }, { pendingWith: pendingWith, pendingWithAdminEmailId: "" })
-                result = await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
-                let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
+
+
+                let existingLog = await Logs.findOne({ defaultId: req.body.defaulterEntryId });
                 // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case escalated to L3";
                 let logMsg = { timeStamp: new Date().toISOString(), message: "Case escalated to L3", remarks: req.body.remarks };
 
@@ -850,7 +922,7 @@ exports.escalateRequest = async (req, res) => {
                 } else {
                     // create log
                     let log = await Logs.create({
-                        pmtHistoryId: paymentId,  // pmtHistory id
+                        defaultId: req.body.defaulterEntryId,  // pmtHistory id
                         logs: [logMsg]
                     });
                 }
