@@ -795,7 +795,7 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
       {
         $match: {
           latestStatus: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
-          isDocumentsRequiredByCreditor: true
+          isDocumentsRequiredByDebtor: true
         }
       },
 
