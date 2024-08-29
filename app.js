@@ -115,10 +115,10 @@ require("./app/routes/user/defaulterEntry.routes")(app);
 //     paymentHistoryService.complainMovetoAdminTable();
 // });
 
-cron.schedule('*/10 * * * *', () => {
-    console.log("latetStatus check ");
-    paymentHistoryService.complainDocumentNotUpload();
-});
+// cron.schedule('*/10 * * * *', () => {
+//     console.log("latetStatus check ");
+//     paymentHistoryService.complainDocumentNotUpload();
+// });
 
 // set port, listen for requests
 const PORT = process.env.PORT || "8080";

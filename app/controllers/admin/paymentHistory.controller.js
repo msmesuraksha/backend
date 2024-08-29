@@ -1247,7 +1247,19 @@ exports.askForSupportingDocument = async (req, res) => {
             let defaulterEntryId = req.body.defaulterEntryId
             let existingLog = await Logs.findOne({ defaulterEntryId: defaulterEntryId });
 
-            let transaction = await DefaulterEntry.findOne({ _id: req.body.defaulterEntryId });
+            let transaction = await DefaulterEntry.findOne({ _id: req.body.defaulterEntryId }).populate([
+                { path: "debtor", select: "customerEmail gstin" },
+                { path: 'invoices' },
+                {
+                    path: 'invoices', populate: [
+                        { path: 'purchaseOrderDocument' },
+                        { path: 'challanDocument' },
+                        { path: 'invoiceDocument' },
+                        { path: 'transportationDocument' },
+                        { path: 'otherDocuments' },
+                    ]
+                },
+            ]);
             transaction.latestStatus = constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED
             transaction.pendingWith = "USER"
             transaction.pendingWithAdminEmailId = req.token.adminDetails.emailId
@@ -1261,7 +1273,7 @@ exports.askForSupportingDocument = async (req, res) => {
             transactions.push(transaction)
 
 
-            let oldTransaction = await PaymentHistory.findById(paymentId);
+            // let oldTransaction = await PaymentHistory.findById(paymentId);
 
             /*    let transaction = await paymentHistoryService.moveToDocumentsNeededQueue({
                    status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
@@ -1293,7 +1305,7 @@ exports.askForSupportingDocument = async (req, res) => {
                 linkToken = jwtUtil.generateCustomToken({ "defaulterEntryId": transaction._id, "userId": userDetailsId, "type": "DEBTOR" }, "CUSTOM");
                 commonService.tokenService.saveTokenToDb({ "defaulterEntryId": defaulterEntryId, "userType": "DEBTOR", "linkToken": linkToken });
                 const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=DEBTOR`;
-                replacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
+                replacements.push({ target: "COMPLAINT_NUMBER", value: transaction.complaintNumber })
                 replacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
                 replacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForDebtor })
 
@@ -1309,12 +1321,12 @@ exports.askForSupportingDocument = async (req, res) => {
                 replacements.push({ target: "PAYMENT_DATE", value: transaction.paymentDate })
                 replacements.push({ target: "PAYMENT_MODE", value: transaction.paymentMode })
 
-                let companyOwnerEmail = await debtorService.getCompanyOwnerEmail(transaction.defaulterEntry.debtor.gstin);
+                let companyOwnerEmail = await debtorService.getCompanyOwnerEmail(transaction.debtor.gstin);
 
                 //sending mail with upload link
                 let mailObj = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_DEBTOR, replacements)
 
-                let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(transaction.defaulterEntry.debtor.gstin);
+                let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(transaction.debtor.gstin);
                 mailObj.cc = ccEmails;
                 let debtorDocumentIds = []
                 debtorDocumentIds.push(transaction.debtorcacertificate);
@@ -1325,11 +1337,11 @@ exports.askForSupportingDocument = async (req, res) => {
                     mailObj.cc = [];
                     let mailObj2 = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_NEEDED_DEBTOR_WITHOUT_LINK, replacements)
                     mailObj2.cc = ccEmails;
-                    mailObj2.to = transaction.defaulterEntry.debtor.customerEmail
+                    mailObj2.to = transaction.debtor.customerEmail
 
                     //  mailUtility.sendEmailWithAttachments(mailObj2, debtorDocumentIds);
                 } else {
-                    mailObj.to = transaction.defaulterEntry.debtor.customerEmail
+                    mailObj.to = transaction.debtor.customerEmail
                 }
 
 
@@ -1353,7 +1365,7 @@ exports.askForSupportingDocument = async (req, res) => {
                 linkToken = jwtUtil.generateCustomToken({ "defaulterEntryId": transaction._id, "userId": credUserDetailsId, "type": "CREDITOR" }, "CUSTOM");
                 commonService.tokenService.saveTokenToDb({ "defaulterEntryId": defaulterEntryId, "userType": "CREDITOR", "linkToken": linkToken });
                 const link = `${process.env.USER_FRONTEND_BASE_URL}/upload-supporting-document-direct?token=${linkToken}&userType=CREDITOR`;
-                creditorReplacements.push({ target: "COMPLAINT_NUMBER", value: transaction.defaulterEntry.complaintNumber })
+                creditorReplacements.push({ target: "COMPLAINT_NUMBER", value: transaction.complaintNumber })
                 creditorReplacements.push({ target: "UPLOAD_SUPPORTING_DOCUMENTS_LINK", value: link })
                 creditorReplacements.push({ target: "ADMIN_REMARKS", value: req.body.adminRemarksForCreditor })
                 //TODO Bug: amount will be zero in case of DISPUTE_TYPE1
@@ -1384,7 +1396,7 @@ exports.askForSupportingDocument = async (req, res) => {
                     credDocumentIds.push(...transaction.attachments);
                 }
 
-                let invoices = transaction.defaulterEntry.invoices;
+                let invoices = transaction.invoices;
 
                 for (let i = 0; i < invoices.length; i++) {
                     let invoice = invoices[i];
@@ -1428,7 +1440,6 @@ exports.askForSupportingDocument = async (req, res) => {
             else {
                 // create log
                 let log = await Logs.create({
-                    pmtHistoryId: paymentId,
                     defaulterEntryId: defaulterEntryId,  // pmtHistory id
                     logs: logMsg
                 });

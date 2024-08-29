@@ -679,43 +679,29 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
         }
       },
       {
-        $lookup: {
-          from: "defaulterentries", // This should be the name of the collection, in plural and lowercase
-          localField: "defaulterEntry",
-          foreignField: "_id",
-          as: "defaulterEntry"
-        }
-      },
-      {
-        $unwind: {
-          path: "$defaulterEntry", // Deconstructs the array field from the previous $lookup stage
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
         $match: {
-          "defaulterEntry.creditorCompanyId": req.token.companyDetails.id
+          "creditorCompanyId": req.token.companyDetails.id
         }
       },
       {
         $lookup: {
           from: "debtors",
-          localField: "defaulterEntry.debtor",
+          localField: "debtor",
           foreignField: "_id",
-          as: "defaulterEntry.debtor"
+          as: "debtor"
         }
       },
       // Unwind debtor for further population
       {
         $unwind: {
-          path: "$defaulterEntry.debtor",
+          path: "$debtor",
           preserveNullAndEmptyArrays: true
         }
       },
       {
         $lookup: {
           from: "companies",
-          let: { companyId: "$defaulterEntry.creditorCompanyId" },
+          let: { companyId: "$creditorCompanyId" },
           pipeline: [
             {
               $match: {
@@ -725,12 +711,12 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
               }
             }
           ],
-          as: "defaulterEntry.creditor"
+          as: "creditor"
         }
       },
       {
         $unwind: {
-          path: "$defaulterEntry.creditor",
+          path: "$creditor",
           preserveNullAndEmptyArrays: true
         }
       },
@@ -745,9 +731,9 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
       {
         $lookup: {
           from: "sendbilltransactions", // Replace with your actual invoices collection name
-          localField: "defaulterEntry.invoices",
+          localField: "invoices",
           foreignField: "_id",
-          as: "defaulterEntry.invoices",
+          as: "invoices",
           pipeline: [
             // Additional $lookup stages to populate fields within each invoice
             {
@@ -808,49 +794,35 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
     let pHistoryDebtor = await DefaulterEntry.aggregate([
       {
         $match: {
-          status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
-          isDocumentsRequiredByDebtor: true
-        }
-      },
-      {
-        $lookup: {
-          from: "defaulterentries", // This should be the name of the collection, in plural and lowercase
-          localField: "defaulterEntry",
-          foreignField: "_id",
-          as: "defaulterEntry"
-        }
-      },
-      {
-        $unwind: {
-          path: "$defaulterEntry", // Deconstructs the array field from the previous $lookup stage
-          preserveNullAndEmptyArrays: true
+          latestStatus: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
+          isDocumentsRequiredByCreditor: true
         }
       },
 
       {
         $lookup: {
           from: "debtors",
-          localField: "defaulterEntry.debtor",
+          localField: "debtor",
           foreignField: "_id",
-          as: "defaulterEntry.debtor"
+          as: "debtor"
         }
       },
       // Unwind debtor for further population
       {
         $unwind: {
-          path: "$defaulterEntry.debtor",
+          path: "$debtor",
           preserveNullAndEmptyArrays: true
         }
       },
       {
         $match: {
-          "defaulterEntry.debtor._id": { $in: debtorIds } // Assuming debtorIds is an array of ObjectId values
+          "debtor._id": { $in: debtorIds } // Assuming debtorIds is an array of ObjectId values
         }
       },
       {
         $lookup: {
           from: "companies",
-          let: { companyId: "$defaulterEntry.creditorCompanyId" },
+          let: { companyId: "$creditorCompanyId" },
           pipeline: [
             {
               $match: {
@@ -860,21 +832,21 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
               }
             }
           ],
-          as: "defaulterEntry.creditor"
+          as: "creditor"
         }
       },
       {
         $unwind: {
-          path: "$defaulterEntry.creditor",
+          path: "$creditor",
           preserveNullAndEmptyArrays: true
         }
       },
       {
         $lookup: {
           from: "sendbilltransactions", // Replace with your actual invoices collection name
-          localField: "defaulterEntry.invoices",
+          localField: "invoices",
           foreignField: "_id",
-          as: "defaulterEntry.invoices",
+          as: "invoices",
           pipeline: [
             // Additional $lookup stages to populate fields within each invoice
             {
