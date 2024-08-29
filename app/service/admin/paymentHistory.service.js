@@ -814,7 +814,20 @@ exports.getAllComplainList = async function (adminRole, emailId, filters, reqSta
             {
                 path: 'debtor', populate: { path: 'ratings', populate: ['question'] }
             },
-            { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" }
+            { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" },
+            {
+                path: 'disputedInvoiceSupportingDocuments', populate: [
+                    'invoice',
+                    'documents'
+                ]
+            },
+
+            { path: 'creditorcacertificate' },
+            { path: 'creditoradditionaldocuments' },
+            { path: 'attachments' },
+            { path: 'debtorcacertificate' },
+            { path: 'debtoradditionaldocuments' },
+            { path: 'supportingDocuments' }
         ]
     );
 
@@ -914,7 +927,20 @@ exports.getTransactionsWithDefaulterFilters = async function (filters) {
             {
                 path: 'debtor', populate: { path: 'ratings', populate: ['question'] }
             },
-            { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" }
+            { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" },
+            {
+                path: 'disputedInvoiceSupportingDocuments', populate: [
+                    'invoice',
+                    'documents'
+                ]
+            },
+
+            { path: 'creditorcacertificate' },
+            { path: 'creditoradditionaldocuments' },
+            { path: 'attachments' },
+            { path: 'debtorcacertificate' },
+            { path: 'debtoradditionaldocuments' },
+            { path: 'supportingDocuments' }
         ]
     );
 
