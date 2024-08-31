@@ -1286,49 +1286,44 @@ exports.updatePaymentHistoryStatus = async (req, res) => {
   try {
 
     result = [];
-    if (req.body.payments && req.body.payments.length !== 0) {
+    if (req.body.defaulterEntryId && req.body.defaulterEntryId !== "") {
       if (req.body.status == "RE_OPENED") {
         let pendingWith = "L2";
-        for (let i = 0; i < req.body.payments.length; i++) {
-          let status = null;
-          let payment = req.body.payments[i]
-          let paymentId = payment.paymentId;
-          let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
 
-          status = req.body.status;
-          reopenReason = req.body.reopenReason;
-          result.push(await paymentHistoryService.updatePaymentHistoryStatus({ status, paymentId, reopenReason }));
+        let status = null;
+        let defaulterId = req.body.defaulterEntryId;
+        let existingLog = await Logs.findOne({ defaultId: defaulterId });
 
-          //assign to L2
-          await paymentHistoryService.updatePaymentHistoryForEscalate({ pendingWith, paymentId });
+        status = req.body.status;
+        reopenReason = req.body.reopenReason;
+        reopenType = req.body.requester
 
-          // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment has been reopened by user "+paymentId+" and Case has been assigned to L2";
-          let logMsg = { timeStamp: new Date().toISOString(), message: "Payment has been reopened by user " + req.token.userDetails.name + " and Case has been assigned to L2" };
+        //assign to L2
+        let complaint = await DefaulterEntry.findByIdAndUpdate({ _id: defaulterId }, { pendingWith: pendingWith, latestStatus: status, reopenReason: reopenReason, reopenRequester: reopenType, pendingWithAdminEmailId: "" });
 
-          if (i == 0) {
-            if (existingLog) {
-              // If the document exists, update the logs array
-              existingLog.logs.push(logMsg);
-              await existingLog.save();
-            } else {
-              // create log
-              let log = await Logs.create({
-                pmtHistoryId: paymentId,  // pmtHistory id
-                logs: [logMsg]
-              });
-            }
-          }
+        result.push(complaint)
 
+        // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment has been reopened by user "+paymentId+" and Case has been assigned to L2";
+        let logMsg = { timeStamp: new Date().toISOString(), message: "Payment has been reopened by user " + req.token.userDetails.name + " and Case has been assigned to L2" };
 
-          let replacements = [];
-          // replacements.push({ target: "password", value: password })
-          mailObj = await mailController.getMailTemplate("STATUS_REOPENED", replacements)
-
-          mailObj.to = req.token.userDetails.emailId;
-          mailUtility.sendMail(mailObj)
-
-
+        if (existingLog) {
+          // If the document exists, update the logs array
+          existingLog.logs.push(logMsg);
+          await existingLog.save();
+        } else {
+          // create log
+          let log = await Logs.create({
+            defaultId: defaulterId,  // pmtHistory id
+            logs: [logMsg]
+          });
         }
+
+        let replacements = [];
+        // replacements.push({ target: "password", value: password })
+        mailObj = await mailController.getMailTemplate("STATUS_REOPENED", replacements)
+
+        mailObj.to = req.token.userDetails.emailId;
+        mailUtility.sendMail(mailObj)
 
         return res.status(200).send({ message: "Payment Reopened", success: true, response: result });
 
