@@ -1673,103 +1673,210 @@ exports.getTransactionByPaymentId = async (req, res) => {
 }
 
 
+// exports.getAllComplaintApproved = async (req, res) => {
+//     try {
+//         let transactions = await PaymentHistory.find({
+//             status: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_APPROVED,
+//         }).populate(
+//             [
+//                 { path: 'defaulterEntry' },
+//                 {
+//                     path: 'defaulterEntry', populate: {
+//                         path: 'invoices', populate: [
+//                             'purchaseOrderDocument',
+//                             'challanDocument',
+//                             'invoiceDocument',
+//                             'transportationDocument',
+//                             'otherDocuments'
+//                         ]
+//                     }
+//                 },
+//                 {
+//                     path: 'disputedInvoiceSupportingDocuments', populate: [
+//                         'invoice',
+//                         'documents'
+//                     ]
+//                 },
+//                 {
+//                     path: 'defaulterEntry', populate: {
+//                         path: 'debtor', populate: {
+//                             path: 'ratings', populate: "question"
+//                         }
+//                     }
+//                 },
+//                 { path: 'defaulterEntry', populate: { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" } },
+//                 { path: 'creditorcacertificate' },
+//                 { path: 'creditoradditionaldocuments' },
+//                 { path: 'attachments' },
+//                 { path: 'debtorcacertificate' },
+//                 { path: 'debtoradditionaldocuments' },
+//                 { path: 'supportingDocuments' }
+//                 // { path: 'defaulterEntry.creditorCompanyId', model: 'company' } // Populate the creditorCompanyId field
+//             ]
+//         );
+
+//         transactions = transactions.map(transaction => {
+//             transaction = transaction.toJSON();
+//             if (transaction.defaulterEntry && transaction.defaulterEntry.creditorCompanyId) {
+//                 transaction.defaulterEntry.creditor = transaction.defaulterEntry.creditorCompanyId;
+//                 delete transaction.defaulterEntry.creditorCompanyId;
+//             }
+//             return transaction;
+//         });
+
+//         let transBackup = [];
+//         transBackup = transactions;
+
+//         let resArray = [];
+//         let countMap = new Map();
+//         let count = 0;
+
+//         for (let i = 0; i < transactions.length; i++) {
+//             const defaulterEntryId = transactions[i].defaulterEntryId;
+//             if (countMap.has(defaulterEntryId)) {
+//                 resArray[countMap.get(defaulterEntryId)].totalAmountPaid += Number(transactions[i].amtPaid);
+
+//                 delete transactions[i].defaulterEntry;
+//                 resArray[countMap.get(defaulterEntryId)].pHArray.push(transactions[i]);
+//             } else {
+//                 // finding lowest duefrom date
+//                 if (transactions[i].defaulterEntry?.invoices) {
+//                     for (let invoice of transactions[i].defaulterEntry?.invoices) {
+//                         if (transactions[i].defaulterEntry.dueFrom) {
+//                             if (transactions[i].defaulterEntry.dueFrom > invoice.dueDate) {
+//                                 transactions[i].defaulterEntry.dueFrom = invoice.dueDate
+//                             }
+//                         } else {
+//                             transactions[i].defaulterEntry.dueFrom = invoice.dueDate
+//                         }
+//                     }
+//                     transactions[i].defaulterEntry.dueFrom = commonUtil.getDateInGeneralFormat(transactions[i].defaulterEntry.dueFrom)
+//                 }
+//                 let temp = { defaulterEntry: transactions[i].defaulterEntry, totalAmountPaid: 0 };
+
+//                 // below code will filter ratings only for current defaulter Entry Id by removing deleted null values
+//                 for (let j = 0; j < temp.defaulterEntry.debtor.ratings.length; j++) {
+//                     if (!(temp.defaulterEntry._id == temp.defaulterEntry.debtor.ratings[j].defaulterEntryId)) {
+//                         delete temp.defaulterEntry.debtor.ratings[j];
+//                     }
+//                 }
+//                 temp.defaulterEntry.debtor.ratings = temp.defaulterEntry.debtor.ratings.filter(item => item !== null);
+
+//                 temp.totalAmountPaid += Number(transactions[i].amtPaid);
+
+//                 delete transactions[i].defaulterEntry;
+//                 temp.pHArray = [transactions[i]];
+//                 resArray[count] = temp;
+//                 countMap.set(defaulterEntryId, count);
+//                 count++;
+//             }
+//         }
+
+//         return res.status(200).send({ message: "", success: true, response: resArray });
+//     } catch (err) {
+//         console.log(err)
+//         res
+//             .status(500)
+//             .send({ message: "Something went wrong", reponse: "", success: false });
+//     }
+// };
+
+
+
 exports.getAllComplaintApproved = async (req, res) => {
     try {
-        let transactions = await PaymentHistory.find({
-            status: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_APPROVED,
+        let allComplaint = await DefaulterEntry.find({
+            latestStatus: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_APPROVED,
         }).populate(
             [
-                { path: 'defaulterEntry' },
+                { path: 'invoices' },
                 {
-                    path: 'defaulterEntry', populate: {
-                        path: 'invoices', populate: [
-                            'purchaseOrderDocument',
-                            'challanDocument',
-                            'invoiceDocument',
-                            'transportationDocument',
-                            'otherDocuments'
-                        ]
-                    }
+                    path: 'invoices', populate: [
+                        { path: 'purchaseOrderDocument' },
+                        { path: 'challanDocument' },
+                        { path: 'invoiceDocument' },
+                        { path: 'transportationDocument' },
+                        { path: 'otherDocuments' },
+                    ]
                 },
+                // { path: 'debtor' },
+                // { path: 'debtor', populate: 'ratings' },
+                {
+                    path: 'debtor', populate: { path: 'ratings', populate: ['question'] }
+                },
+                { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" },
                 {
                     path: 'disputedInvoiceSupportingDocuments', populate: [
                         'invoice',
                         'documents'
                     ]
                 },
-                {
-                    path: 'defaulterEntry', populate: {
-                        path: 'debtor', populate: {
-                            path: 'ratings', populate: "question"
-                        }
-                    }
-                },
-                { path: 'defaulterEntry', populate: { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" } },
+
                 { path: 'creditorcacertificate' },
                 { path: 'creditoradditionaldocuments' },
                 { path: 'attachments' },
                 { path: 'debtorcacertificate' },
                 { path: 'debtoradditionaldocuments' },
                 { path: 'supportingDocuments' }
-                // { path: 'defaulterEntry.creditorCompanyId', model: 'company' } // Populate the creditorCompanyId field
             ]
         );
 
-        transactions = transactions.map(transaction => {
+        allComplaint = allComplaint.map(transaction => {
             transaction = transaction.toJSON();
-            if (transaction.defaulterEntry && transaction.defaulterEntry.creditorCompanyId) {
-                transaction.defaulterEntry.creditor = transaction.defaulterEntry.creditorCompanyId;
-                delete transaction.defaulterEntry.creditorCompanyId;
+            if (transaction && transaction.creditorCompanyId) {
+                transaction.creditor = transaction.creditorCompanyId;
+                delete transaction.creditorCompanyId;
             }
             return transaction;
         });
 
+        let transactions = await paymentHistoryService.getTransactionsWithPaymentFilter();
+
         let transBackup = [];
-        transBackup = transactions;
+        transBackup = allComplaint;
 
         let resArray = [];
         let countMap = new Map();
         let count = 0;
 
-        for (let i = 0; i < transactions.length; i++) {
-            const defaulterEntryId = transactions[i].defaulterEntryId;
-            if (countMap.has(defaulterEntryId)) {
-                resArray[countMap.get(defaulterEntryId)].totalAmountPaid += Number(transactions[i].amtPaid);
-
-                delete transactions[i].defaulterEntry;
-                resArray[countMap.get(defaulterEntryId)].pHArray.push(transactions[i]);
-            } else {
-                // finding lowest duefrom date
-                if (transactions[i].defaulterEntry?.invoices) {
-                    for (let invoice of transactions[i].defaulterEntry?.invoices) {
-                        if (transactions[i].defaulterEntry.dueFrom) {
-                            if (transactions[i].defaulterEntry.dueFrom > invoice.dueDate) {
-                                transactions[i].defaulterEntry.dueFrom = invoice.dueDate
-                            }
-                        } else {
-                            transactions[i].defaulterEntry.dueFrom = invoice.dueDate
+        for (let i = 0; i < allComplaint.length; i++) {
+            // finding lowest duefrom date
+            if (allComplaint[i]?.invoices) {
+                for (let invoice of allComplaint[i]?.invoices) {
+                    if (allComplaint[i].dueFrom) {
+                        if (allComplaint[i].dueFrom > invoice.dueDate) {
+                            allComplaint[i].dueFrom = invoice.dueDate
                         }
-                    }
-                    transactions[i].defaulterEntry.dueFrom = commonUtil.getDateInGeneralFormat(transactions[i].defaulterEntry.dueFrom)
-                }
-                let temp = { defaulterEntry: transactions[i].defaulterEntry, totalAmountPaid: 0 };
-
-                // below code will filter ratings only for current defaulter Entry Id by removing deleted null values
-                for (let j = 0; j < temp.defaulterEntry.debtor.ratings.length; j++) {
-                    if (!(temp.defaulterEntry._id == temp.defaulterEntry.debtor.ratings[j].defaulterEntryId)) {
-                        delete temp.defaulterEntry.debtor.ratings[j];
+                    } else {
+                        allComplaint[i].dueFrom = invoice.dueDate
                     }
                 }
-                temp.defaulterEntry.debtor.ratings = temp.defaulterEntry.debtor.ratings.filter(item => item !== null);
-
-                temp.totalAmountPaid += Number(transactions[i].amtPaid);
-
-                delete transactions[i].defaulterEntry;
-                temp.pHArray = [transactions[i]];
-                resArray[count] = temp;
-                countMap.set(defaulterEntryId, count);
-                count++;
+                allComplaint[i].dueFrom = commonUtil.getDateInGeneralFormat(allComplaint[i].dueFrom)
             }
+            let temp = { "defaulterEntry": allComplaint[i], totalAmountPaid: 0 }
+
+
+            // below code will filter ratings only for current defaulter Entry Id by removing deleted null values
+            for (let j = 0; j < temp.defaulterEntry.debtor.ratings.length; j++) {
+                if (!(temp.defaulterEntry.id == temp.defaulterEntry.debtor.ratings[j].defaulterEntryId)) {
+                    delete temp.defaulterEntry.debtor.ratings[j];
+                }
+            }
+
+            temp.defaulterEntry.debtor.ratings = temp.defaulterEntry.debtor.ratings.filter(item => item !== null);
+
+            temp.totalAmountPaid += Number(transactions[i].amtPaid);
+
+            //    delete transactions[i].defaulterEntry;
+
+            const defulterEntryRecord = transactions.filter(value => value.defaulterEntryId == temp.defaulterEntry.id)
+
+            temp["pHArray"] = defulterEntryRecord;
+
+            resArray[count] = temp;
+            //   countMap.set(defaulterEntryId, count);
+            count++;
+
         }
 
         return res.status(200).send({ message: "", success: true, response: resArray });
