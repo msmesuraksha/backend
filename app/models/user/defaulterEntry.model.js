@@ -27,6 +27,7 @@ module.exports = mongoose => {
         adminRemarksForDebtor: String,
         adminRemarksForCreditor: String,
         reopenReason: String,
+        reopenRequester: String,
         attachments: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'documents',
