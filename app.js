@@ -9,6 +9,7 @@ const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 const shell = require('shelljs');
 const schedule = require('node-schedule');
+const helmet = require('helmet')
 
 const user_db = require("./app/models/user");
 const admin_db = require("./app/models/admin");
@@ -64,6 +65,7 @@ app.use(sessions({
     resave: false
 }));
 
+app.use(helmet())
 
 
 const db = require("./app/models/user");
