@@ -116,7 +116,7 @@ cron.schedule('*/10 * * * *', () => {
 });
 
 cron.schedule('*/10 * * * *', () => {
-    console.log("latetStatus check ");
+    console.log("latestStatus check ");
     paymentHistoryService.complainDocumentNotUpload();
 });
 
