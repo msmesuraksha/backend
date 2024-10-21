@@ -2,44 +2,53 @@ const db = require("../../models/admin/");
 const user_db = require("../../models/user");
 const commondb = require("../../models/common");
 const Logs = commondb.logs;
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const uService = require("../../service/user/");
 const service = require("../../service/admin/");
 const userService = uService.user;
 const debtorService = uService.debtor;
-const paymentHistoryService = service.paymentHistoryService
+const paymentHistoryService = service.paymentHistoryService;
 const DefaulterEntry = user_db.defaulterEntry;
 const commonService = require("../../service/common");
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const jwtUtil = require('../../util/jwtUtil')
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const jwtUtil = require("../../util/jwtUtil");
 const PaymentHistory = db.paymentHistory;
 const SendBillTrans = user_db.sendBillTransactions;
 const Debtors = user_db.debtors;
-const constants = require('../../constants/userConstants');
-const mailController = require('../../controllers/common/mailTemplates.controller')
-const mailUtility = require('../../util/mailUtility')
-const commonUtil = require('../../util/commonUtil')
+const constants = require("../../constants/userConstants");
+const mailController = require("../../controllers/common/mailTemplates.controller");
+const mailUtility = require("../../util/mailUtility");
+const commonUtil = require("../../util/commonUtil");
 
 exports.confirmPaymentByCreditor = async (req, res) => {
   try {
-
-    const pHistory = await PaymentHistory.findOne({ invoiceId: req.body.invoiceId, status: "PENDING" });
+    const pHistory = await PaymentHistory.findOne({
+      invoiceId: req.body.invoiceId,
+      status: "PENDING",
+    });
     if (pHistory) {
-      const pmtHistory = await PaymentHistory.findByIdAndUpdate(pHistory._id, {
-        invoiceId: req.body.invoiceId,
-        amtPaid: req.body.amtPaid,
-        proofFiles: "",
-        status: "APPROVED",
-        pendingWith: "",
-        approvedByCreditor: "true"
-      }, { new: true });
+      const pmtHistory = await PaymentHistory.findByIdAndUpdate(
+        pHistory._id,
+        {
+          invoiceId: req.body.invoiceId,
+          amtPaid: req.body.amtPaid,
+          proofFiles: "",
+          status: "APPROVED",
+          pendingWith: "",
+          approvedByCreditor: "true",
+        },
+        { new: true }
+      );
 
       //logging
       let paymentId = pHistory._id.toString();
       let existingLog = await Logs.findOne({ pmtHistoryId: paymentId });
       // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment recorded by Buyer approved by Seller";
-      let logMsg = { timeStamp: new Date().toISOString(), message: "Payment recorded by Buyer, approved by Seller" };
+      let logMsg = {
+        timeStamp: new Date().toISOString(),
+        message: "Payment recorded by Buyer, approved by Seller",
+      };
       if (existingLog) {
         // If the document exists, update the logs array
         existingLog.logs.push(logMsg);
@@ -47,11 +56,10 @@ exports.confirmPaymentByCreditor = async (req, res) => {
       } else {
         // create log
         let log = await Logs.create({
-          pmtHistoryId: paymentId,  // pmtHistory id
-          logs: [logMsg]
+          pmtHistoryId: paymentId, // pmtHistory id
+          logs: [logMsg],
         });
       }
-
     } else {
       const pmtHistory = await PaymentHistory.create({
         invoiceId: req.body.invoiceId,
@@ -59,32 +67,42 @@ exports.confirmPaymentByCreditor = async (req, res) => {
         proofFiles: "",
         status: "APPROVED",
         pendingWith: "",
-        approvedByCreditor: "true"
+        approvedByCreditor: "true",
       });
       // create log
       const log = await Logs.create({
-        pmtHistoryId: pmtHistory._id,  // pmtHistory id
-        // logs: [" [ "+new Date().toISOString()+" ] "+"Payment recorded by Buyer approved by Seller"]  
-        logs: [{ timeStamp: new Date().toISOString(), message: "Payment recorded by Buyer, approved by Seller" }]
+        pmtHistoryId: pmtHistory._id, // pmtHistory id
+        // logs: [" [ "+new Date().toISOString()+" ] "+"Payment recorded by Buyer approved by Seller"]
+        logs: [
+          {
+            timeStamp: new Date().toISOString(),
+            message: "Payment recorded by Buyer, approved by Seller",
+          },
+        ],
       });
-    };
+    }
 
     let invoice = await SendBillTrans.findOne({ _id: req.body.invoiceId });
     let newRemainingAmount = invoice.remainingAmount - amtPaid;
-    let updatedSendBill = await SendBillTrans.findByIdAndUpdate({ _id: result.invoiceId }, { remainingAmount: newRemainingAmount });
+    let updatedSendBill = await SendBillTrans.findByIdAndUpdate(
+      { _id: result.invoiceId },
+      { remainingAmount: newRemainingAmount }
+    );
 
-    return res.status(200).send({ message: "Payment verification Done directly from creditor side", success: true, response: this.pmtHistory });
-
-
+    return res
+      .status(200)
+      .send({
+        message: "Payment verification Done directly from creditor side",
+        success: true,
+        response: this.pmtHistory,
+      });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     res
       .status(500)
       .send({ message: "Something went wrong", reponse: "", success: false });
   }
 };
-
-
 
 // exports.getTransactionsPendingForDocs = async (req, res) => {
 //   try {
@@ -229,7 +247,6 @@ exports.confirmPaymentByCreditor = async (req, res) => {
 //       // }
 //     ]);
 
-
 //     console.log(pHistoryCreditor);
 
 //     let pHistoryDebtor = await PaymentHistory.aggregate([
@@ -360,9 +377,7 @@ exports.confirmPaymentByCreditor = async (req, res) => {
 
 //     //   pHistoryCreditor = pHistoryCreditor.filter(ph => ph.defaulterEntry);
 
-
 //     return res.status(200).send({ message: "List fethed", success: true, response: { transactionsRaisedByMe: pHistoryCreditor, transactionsSentToMe: pHistoryDebtor } });
-
 
 //   } catch (err) {
 //     console.log(err)
@@ -372,7 +387,6 @@ exports.confirmPaymentByCreditor = async (req, res) => {
 //   }
 // };
 
-
 // exports.getTransactionsPendingForDocs = async (req, res) => {
 //   try {
 //     let debtorIds = await Debtors.find({ gstin: req.token.companyDetails.gstin }).select('_id').lean();
@@ -516,7 +530,6 @@ exports.confirmPaymentByCreditor = async (req, res) => {
 //       // }
 //     ]);
 
-
 //     console.log(pHistoryCreditor);
 
 //     let pHistoryDebtor = await PaymentHistory.aggregate([
@@ -647,9 +660,7 @@ exports.confirmPaymentByCreditor = async (req, res) => {
 
 //     //   pHistoryCreditor = pHistoryCreditor.filter(ph => ph.defaulterEntry);
 
-
 //     return res.status(200).send({ message: "List fethed", success: true, response: { transactionsRaisedByMe: pHistoryCreditor, transactionsSentToMe: pHistoryDebtor } });
-
 
 //   } catch (err) {
 //     console.log(err)
@@ -661,8 +672,12 @@ exports.confirmPaymentByCreditor = async (req, res) => {
 
 exports.getTransactionsPendingForDocs = async (req, res) => {
   try {
-    let debtorIds = await Debtors.find({ gstin: req.token.companyDetails.gstin }).select('_id').lean();
-    debtorIds = debtorIds.map(id => id._id)
+    let debtorIds = await Debtors.find({
+      gstin: req.token.companyDetails.gstin,
+    })
+      .select("_id")
+      .lean();
+    debtorIds = debtorIds.map((id) => id._id);
     // let pHistoryCreditor = await PaymentHistory.find({
     //     status: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
     // }).populate({
@@ -675,28 +690,28 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
       {
         $match: {
           latestStatus: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
-          isDocumentsRequiredByCreditor: true
-        }
+          isDocumentsRequiredByCreditor: true,
+        },
       },
       {
         $match: {
-          "creditorCompanyId": req.token.companyDetails.id
-        }
+          creditorCompanyId: req.token.companyDetails.id,
+        },
       },
       {
         $lookup: {
           from: "debtors",
           localField: "debtor",
           foreignField: "_id",
-          as: "debtor"
-        }
+          as: "debtor",
+        },
       },
       // Unwind debtor for further population
       {
         $unwind: {
           path: "$debtor",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
@@ -706,19 +721,19 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
             {
               $match: {
                 $expr: {
-                  $eq: ["$_id", { $toObjectId: "$$companyId" }]
-                }
-              }
-            }
+                  $eq: ["$_id", { $toObjectId: "$$companyId" }],
+                },
+              },
+            },
           ],
-          as: "creditor"
-        }
+          as: "creditor",
+        },
       },
       {
         $unwind: {
           path: "$creditor",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       //   {
       //     $lookup: {
@@ -741,45 +756,44 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
                 from: "documents", // Replace with the actual collection name
                 localField: "purchaseOrderDocument",
                 foreignField: "_id",
-                as: "purchaseOrderDocument"
-              }
+                as: "purchaseOrderDocument",
+              },
             },
             {
               $lookup: {
                 from: "documents", // Replace with the actual collection name
                 localField: "challanDocument",
                 foreignField: "_id",
-                as: "challanDocument"
-              }
+                as: "challanDocument",
+              },
             },
             {
               $lookup: {
                 from: "documents", // Replace with the actual collection name
                 localField: "invoiceDocument",
                 foreignField: "_id",
-                as: "invoiceDocument"
-              }
+                as: "invoiceDocument",
+              },
             },
             {
               $lookup: {
                 from: "documents", // Replace with the actual collection name
                 localField: "transportationDocument",
                 foreignField: "_id",
-                as: "transportationDocument"
-              }
+                as: "transportationDocument",
+              },
             },
             {
               $lookup: {
                 from: "documents", // Replace with the actual collection name
                 localField: "otherDocuments",
                 foreignField: "_id",
-                as: "otherDocuments"
-              }
+                as: "otherDocuments",
+              },
             },
-          ]
-        }
-
-      }
+          ],
+        },
+      },
 
       // {
       //     $project: {
@@ -788,15 +802,14 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
       // }
     ]);
 
-
     console.log(pHistoryCreditor);
 
     let pHistoryDebtor = await DefaulterEntry.aggregate([
       {
         $match: {
           latestStatus: constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NEEDED,
-          isDocumentsRequiredByDebtor: true
-        }
+          isDocumentsRequiredByDebtor: true,
+        },
       },
 
       {
@@ -804,20 +817,20 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
           from: "debtors",
           localField: "debtor",
           foreignField: "_id",
-          as: "debtor"
-        }
+          as: "debtor",
+        },
       },
       // Unwind debtor for further population
       {
         $unwind: {
           path: "$debtor",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $match: {
-          "debtor._id": { $in: debtorIds } // Assuming debtorIds is an array of ObjectId values
-        }
+          "debtor._id": { $in: debtorIds }, // Assuming debtorIds is an array of ObjectId values
+        },
       },
       {
         $lookup: {
@@ -827,19 +840,19 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
             {
               $match: {
                 $expr: {
-                  $eq: ["$_id", { $toObjectId: "$$companyId" }]
-                }
-              }
-            }
+                  $eq: ["$_id", { $toObjectId: "$$companyId" }],
+                },
+              },
+            },
           ],
-          as: "creditor"
-        }
+          as: "creditor",
+        },
       },
       {
         $unwind: {
           path: "$creditor",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
@@ -854,63 +867,68 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
                 from: "documents", // Replace with the actual collection name
                 localField: "purchaseOrderDocument",
                 foreignField: "_id",
-                as: "purchaseOrderDocument"
-              }
+                as: "purchaseOrderDocument",
+              },
             },
             {
               $lookup: {
                 from: "documents", // Replace with the actual collection name
                 localField: "challanDocument",
                 foreignField: "_id",
-                as: "challanDocument"
-              }
+                as: "challanDocument",
+              },
             },
             {
               $lookup: {
                 from: "documents", // Replace with the actual collection name
                 localField: "invoiceDocument",
                 foreignField: "_id",
-                as: "invoiceDocument"
-              }
+                as: "invoiceDocument",
+              },
             },
             {
               $lookup: {
                 from: "documents", // Replace with the actual collection name
                 localField: "transportationDocument",
                 foreignField: "_id",
-                as: "transportationDocument"
-              }
+                as: "transportationDocument",
+              },
             },
             {
               $lookup: {
                 from: "documents", // Replace with the actual collection name
                 localField: "otherDocuments",
                 foreignField: "_id",
-                as: "otherDocuments"
-              }
+                as: "otherDocuments",
+              },
             },
             {
               $lookup: {
                 from: "documents", // Replace with the actual collection name
                 localField: "disputeSupportingDocumentsForInvoice",
                 foreignField: "_id",
-                as: "disputeSupportingDocumentsForInvoice"
-              }
-            }
-          ]
-        }
-
-      }
+                as: "disputeSupportingDocumentsForInvoice",
+              },
+            },
+          ],
+        },
+      },
     ]);
 
     //   pHistoryCreditor = pHistoryCreditor.filter(ph => ph.defaulterEntry);
 
-
-    return res.status(200).send({ message: "List fethed", success: true, response: { transactionsRaisedByMe: pHistoryCreditor, transactionsSentToMe: pHistoryDebtor } });
-
-
+    return res
+      .status(200)
+      .send({
+        message: "List fethed",
+        success: true,
+        response: {
+          transactionsRaisedByMe: pHistoryCreditor,
+          transactionsSentToMe: pHistoryDebtor,
+        },
+      });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     res
       .status(500)
       .send({ message: "Something went wrong", reponse: "", success: false });
@@ -1063,7 +1081,6 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
 //       }
 //     }
 
-
 //     // for creditor
 //     for (let i = 0; i < credTransactions.length; i++) {
 //       for (let invoice of credTransactions[i].defaulterEntry.invoices) {
@@ -1105,95 +1122,103 @@ exports.getTransactionsPendingForDocs = async (req, res) => {
 
 exports.getAllApprovedTransactionsUser = async (req, res) => {
   try {
-
     let currentGSTIN = req.token.companyDetails.gstin;
 
     // as creditor
     let credTransactions = await DefaulterEntry.find({
       latestStatus: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_APPROVED,
-    }).populate(
-      [
-        { path: 'invoices' },
-        {
-          path: 'invoices', populate: [
-            { path: 'purchaseOrderDocument' },
-            { path: 'challanDocument' },
-            { path: 'invoiceDocument' },
-            { path: 'transportationDocument' },
-            { path: 'otherDocuments' },
-          ]
+    }).populate([
+      { path: "invoices" },
+      {
+        path: "invoices",
+        populate: [
+          { path: "purchaseOrderDocument" },
+          { path: "challanDocument" },
+          { path: "invoiceDocument" },
+          { path: "transportationDocument" },
+          { path: "otherDocuments" },
+        ],
+      },
+      // { path: 'debtor' },
+      // { path: 'debtor', populate: 'ratings' },
+      {
+        path: "debtor",
+        populate: { path: "ratings", populate: ["question"] },
+      },
+      /* {
+        path: "creditorCompanyId",
+        match: {
+          gstin: currentGSTIN,
         },
-        // { path: 'debtor' },
-        // { path: 'debtor', populate: 'ratings' },
-        {
-          path: 'debtor', populate: { path: 'ratings', populate: ['question'] }
-        },
-        {
-          path: 'creditorCompanyId', match: {
-            'gstin': currentGSTIN
-          }, model: 'company', populate: "companyOwner"
-        },
-        {
-          path: 'disputedInvoiceSupportingDocuments', populate: [
-            'invoice',
-            'documents'
-          ]
-        },
+        model: "company",
+        populate: "companyOwner",
+      }, */
+      { path: "creditorCompanyId", model: "company", populate: "companyOwner" },
+      {
+        path: "disputedInvoiceSupportingDocuments",
+        populate: ["invoice", "documents"],
+      },
 
-        { path: 'creditorcacertificate' },
-        { path: 'creditoradditionaldocuments' },
-        { path: 'attachments' },
-        { path: 'debtorcacertificate' },
-        { path: 'debtoradditionaldocuments' },
-        { path: 'supportingDocuments' }
-      ]
+      { path: "creditorcacertificate" },
+      { path: "creditoradditionaldocuments" },
+      { path: "attachments" },
+      { path: "debtorcacertificate" },
+      { path: "debtoradditionaldocuments" },
+      { path: "supportingDocuments" },
+    ]);
+    credTransactions = credTransactions.filter(
+      (credTransaction) =>
+        credTransaction && credTransaction.creditorCompanyId !== null
     );
-    credTransactions = credTransactions.filter(credTransaction => credTransaction && credTransaction.creditorCompanyId !== null);
 
     // as debtor
     let transactions = await DefaulterEntry.find({
       latestStatus: constants.PAYMENT_HISTORY_STATUS.COMPLAINT_APPROVED,
-    }).populate(
-      [
-        { path: 'invoices' },
-        {
-          path: 'invoices', populate: [
-            { path: 'purchaseOrderDocument' },
-            { path: 'challanDocument' },
-            { path: 'invoiceDocument' },
-            { path: 'transportationDocument' },
-            { path: 'otherDocuments' },
-          ]
+    }).populate([
+      { path: "invoices" },
+      {
+        path: "invoices",
+        populate: [
+          { path: "purchaseOrderDocument" },
+          { path: "challanDocument" },
+          { path: "invoiceDocument" },
+          { path: "transportationDocument" },
+          { path: "otherDocuments" },
+        ],
+      },
+      // { path: 'debtor' },
+      // { path: 'debtor', populate: 'ratings' },
+      {
+        path: "debtor",
+        populate: { path: "ratings", populate: ["question"] },
+      },
+     /*  {
+        path: "creditorCompanyId",
+        match: {
+          gstin: currentGSTIN,
         },
-        // { path: 'debtor' },
-        // { path: 'debtor', populate: 'ratings' },
-        {
-          path: 'debtor', populate: { path: 'ratings', populate: ['question'] }
-        },
-        {
-          path: 'creditorCompanyId', match: {
-            'gstin': currentGSTIN
-          }, model: 'company', populate: "companyOwner"
-        },
-        {
-          path: 'disputedInvoiceSupportingDocuments', populate: [
-            'invoice',
-            'documents'
-          ]
-        },
+        model: "company",
+        populate: "companyOwner",
+      }, */
+      { path: "creditorCompanyId", model: "company", populate: "companyOwner" },
+      {
+        path: "disputedInvoiceSupportingDocuments",
+        populate: ["invoice", "documents"],
+      },
 
-        { path: 'creditorcacertificate' },
-        { path: 'creditoradditionaldocuments' },
-        { path: 'attachments' },
-        { path: 'debtorcacertificate' },
-        { path: 'debtoradditionaldocuments' },
-        { path: 'supportingDocuments' }
-      ]
-    );
+      { path: "creditorcacertificate" },
+      { path: "creditoradditionaldocuments" },
+      { path: "attachments" },
+      { path: "debtorcacertificate" },
+      { path: "debtoradditionaldocuments" },
+      { path: "supportingDocuments" },
+    ]);
     //debtor.GSTIN not matching currentGSTIN, filterout
-    transactions = transactions.filter(transaction => transaction && transaction.debtor !== null);
+    transactions = transactions.filter(
+      (transaction) => transaction && transaction.debtor !== null
+    );
 
-    transactions = transactions.map(transaction => {
+    transactions = transactions.map((transaction) => {
       transaction = transaction.toJSON();
       if (transaction && transaction.creditorCompanyId) {
         transaction.creditor = transaction.creditorCompanyId;
@@ -1202,8 +1227,8 @@ exports.getAllApprovedTransactionsUser = async (req, res) => {
       return transaction;
     });
 
-    let pHArrayList = await paymentHistoryService.getTransactionsWithPaymentFilter();
-
+    let pHArrayList =
+      await paymentHistoryService.getTransactionsWithPaymentFilter();
 
     let resArray1 = [];
     let countMap1 = new Map();
@@ -1214,20 +1239,27 @@ exports.getAllApprovedTransactionsUser = async (req, res) => {
       for (let invoice of transactions[i].invoices) {
         if (transactions[i].dueFrom) {
           if (transactions[i].dueFrom > invoice.dueDate) {
-            transactions[i].dueFrom = invoice.dueDate
+            transactions[i].dueFrom = invoice.dueDate;
           }
         } else {
-          transactions[i].dueFrom = invoice.dueDate
+          transactions[i].dueFrom = invoice.dueDate;
         }
       }
-      transactions[i].dueFrom = commonUtil.getDateInGeneralFormat(transactions[i].dueFrom)
+      transactions[i].dueFrom = commonUtil.getDateInGeneralFormat(
+        transactions[i].dueFrom
+      );
 
       const defaulterEntryId = transactions[i];
 
+      let temp = {
+        defaulterEntry: transactions[i],
+        totalAmountPaid: 0,
+        dueFrom: null,
+      };
 
-      let temp = { defaulterEntry: transactions[i], totalAmountPaid: 0, dueFrom: null };
-
-      const defulterEntryRecord = pHArrayList.filter(value => value.defaulterEntryId == temp.defaulterEntry.id)
+      const defulterEntryRecord = pHArrayList.filter(
+        (value) => value.defaulterEntryId == temp.defaulterEntry.id
+      );
 
       for (let i = 0; i < defulterEntryRecord.length; i++) {
         temp.totalAmountPaid += parseFloat(defulterEntryRecord[i].amtPaid);
@@ -1238,28 +1270,34 @@ exports.getAllApprovedTransactionsUser = async (req, res) => {
       temp.pHArray = defulterEntryRecord;
       resArray1.push(temp);
       countMap1.set(defaulterEntryId, resArray1.length - 1);
-
     }
-
 
     // for creditor
     for (let i = 0; i < credTransactions.length; i++) {
       for (let invoice of credTransactions[i].invoices) {
         if (credTransactions[i].dueFrom) {
           if (credTransactions[i].dueFrom > invoice.dueDate) {
-            credTransactions[i].dueFrom = invoice.dueDate
+            credTransactions[i].dueFrom = invoice.dueDate;
           }
         } else {
-          credTransactions[i].dueFrom = invoice.dueDate
+          credTransactions[i].dueFrom = invoice.dueDate;
         }
       }
-      credTransactions[i].dueFrom = commonUtil.getDateInGeneralFormat(credTransactions[i].dueFrom)
+      credTransactions[i].dueFrom = commonUtil.getDateInGeneralFormat(
+        credTransactions[i].dueFrom
+      );
 
       const defaulterEntryId = credTransactions[i];
 
-      let temp = { defaulterEntry: credTransactions[i], totalAmountPaid: 0, dueFrom: null };
+      let temp = {
+        defaulterEntry: credTransactions[i],
+        totalAmountPaid: 0,
+        dueFrom: null,
+      };
 
-      const defulterEntryRecord = pHArrayList.filter(value => value.defaulterEntryId == temp.defaulterEntry.id)
+      const defulterEntryRecord = pHArrayList.filter(
+        (value) => value.defaulterEntryId == temp.defaulterEntry.id
+      );
 
       for (let i = 0; i < defulterEntryRecord.length; i++) {
         temp.totalAmountPaid += parseFloat(defulterEntryRecord[i].amtPaid);
@@ -1270,12 +1308,17 @@ exports.getAllApprovedTransactionsUser = async (req, res) => {
       temp.pHArray = defulterEntryRecord;
       resArray2.push(temp);
       countMap2.set(defaulterEntryId, resArray2.length - 1);
-
     }
 
-    return res.status(200).send({ message: "", success: true, response: { "compaintsForMe": resArray1, "complaintsByMe": resArray2 } });
+    return res
+      .status(200)
+      .send({
+        message: "",
+        success: true,
+        response: { compaintsForMe: resArray1, complaintsByMe: resArray2 },
+      });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     res
       .status(500)
       .send({ message: "Something went wrong", reponse: "", success: false });
@@ -1284,7 +1327,6 @@ exports.getAllApprovedTransactionsUser = async (req, res) => {
 
 exports.updatePaymentHistoryStatus = async (req, res) => {
   try {
-
     result = [];
     if (req.body.defaulterEntryId && req.body.defaulterEntryId !== "") {
       if (req.body.status == "RE_OPENED") {
@@ -1296,15 +1338,30 @@ exports.updatePaymentHistoryStatus = async (req, res) => {
 
         status = req.body.status;
         reopenReason = req.body.reopenReason;
-        reopenType = req.body.requester
+        reopenType = req.body.requester;
 
         //assign to L2
-        let complaint = await DefaulterEntry.findByIdAndUpdate({ _id: defaulterId }, { pendingWith: pendingWith, latestStatus: status, reopenReason: reopenReason, reopenRequester: reopenType, pendingWithAdminEmailId: "" });
+        let complaint = await DefaulterEntry.findByIdAndUpdate(
+          { _id: defaulterId },
+          {
+            pendingWith: pendingWith,
+            latestStatus: status,
+            reopenReason: reopenReason,
+            reopenRequester: reopenType,
+            pendingWithAdminEmailId: "",
+          }
+        );
 
-        result.push(complaint)
+        result.push(complaint);
 
         // let logMsg = " [ "+new Date().toISOString()+" ] "+"Payment has been reopened by user "+paymentId+" and Case has been assigned to L2";
-        let logMsg = { timeStamp: new Date().toISOString(), message: "Payment has been reopened by user " + req.token.userDetails.name + " and Case has been assigned to L2" };
+        let logMsg = {
+          timeStamp: new Date().toISOString(),
+          message:
+            "Payment has been reopened by user " +
+            req.token.userDetails.name +
+            " and Case has been assigned to L2",
+        };
 
         if (existingLog) {
           // If the document exists, update the logs array
@@ -1313,26 +1370,39 @@ exports.updatePaymentHistoryStatus = async (req, res) => {
         } else {
           // create log
           let log = await Logs.create({
-            defaultId: defaulterId,  // pmtHistory id
-            logs: [logMsg]
+            defaultId: defaulterId, // pmtHistory id
+            logs: [logMsg],
           });
         }
 
         let replacements = [];
         // replacements.push({ target: "password", value: password })
-        mailObj = await mailController.getMailTemplate("STATUS_REOPENED", replacements)
+        mailObj = await mailController.getMailTemplate(
+          "STATUS_REOPENED",
+          replacements
+        );
 
         mailObj.to = req.token.userDetails.emailId;
-        mailUtility.sendMail(mailObj)
+        mailUtility.sendMail(mailObj);
 
-        return res.status(200).send({ message: "Payment Reopened", success: true, response: result });
-
+        return res
+          .status(200)
+          .send({
+            message: "Payment Reopened",
+            success: true,
+            response: result,
+          });
       }
     }
-    return res.status(401).send({ message: "Problem with input / something went wrong", success: true, response: "" });
-
+    return res
+      .status(401)
+      .send({
+        message: "Problem with input / something went wrong",
+        success: true,
+        response: "",
+      });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     res
       .status(500)
       .send({ message: "Something went wrong", reponse: "", success: false });
@@ -1342,62 +1412,91 @@ exports.updatePaymentHistoryStatus = async (req, res) => {
 exports.uploadSupportingDocuments = async (req, res) => {
   try {
     if (req.body.token) {
-      let token = jwtUtil.verifyCustomToken(req.body.token)
-      let tokenType = token.tokenType
+      let token = jwtUtil.verifyCustomToken(req.body.token);
+      let tokenType = token.tokenType;
       req.body.defaulterEntryId = token.tokenDetails.defaulterEntryId;
       req.body.type = token.tokenDetails.type;
     }
 
-    const defaulter = await DefaulterEntry.findOne({ _id: req.body.defaulterEntryId }).populate(
-      [
-        // { path: 'defaulterEntry.debtor' },
-        { path: 'invoices' },
-        {
-          path: 'invoices', populate: [
-            { path: 'purchaseOrderDocument' },
-            { path: 'challanDocument' },
-            { path: 'invoiceDocument' },
-            { path: 'transportationDocument' },
-            { path: 'otherDocuments' },
-          ]
-        },
-        { path: "debtor", select: "customerEmail gstin" },
-      ]);
+    const defaulter = await DefaulterEntry.findOne({
+      _id: req.body.defaulterEntryId,
+    }).populate([
+      // { path: 'defaulterEntry.debtor' },
+      { path: "invoices" },
+      {
+        path: "invoices",
+        populate: [
+          { path: "purchaseOrderDocument" },
+          { path: "challanDocument" },
+          { path: "invoiceDocument" },
+          { path: "transportationDocument" },
+          { path: "otherDocuments" },
+        ],
+      },
+      { path: "debtor", select: "customerEmail gstin" },
+    ]);
     if (!defaulter) {
-      return res.status(200).json({ message: 'defaulter id is not valid.', success: false, response: "" });
+      return res
+        .status(200)
+        .json({
+          message: "defaulter id is not valid.",
+          success: false,
+          response: "",
+        });
     }
     let defaulterId = defaulter._id.toString();
     if (req.body.type == "DEBTOR") {
-
       if (req.body.token) {
-        let token = jwtUtil.verifyCustomToken(req.body.token)
-        let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "defaulterEntryId": token.tokenDetails.defaulterEntryId, "userType": "DEBTOR" });
+        let token = jwtUtil.verifyCustomToken(req.body.token);
+        let dbToken =
+          await commonService.tokenService.getTokenByPaymentIdAndUser({
+            defaulterEntryId: token.tokenDetails.defaulterEntryId,
+            userType: "DEBTOR",
+          });
         if (!dbToken) {
-          return res.status(403).json({ message: 'Token is not valid or has expired.', success: false, response: "" });
+          return res
+            .status(403)
+            .json({
+              message: "Token is not valid or has expired.",
+              success: false,
+              response: "",
+            });
         }
       }
 
       if (req.body.debtorcacertificate) {
-        defaulter.debtorcacertificate = mongoose.Types.ObjectId(req.body.debtorcacertificate)
+        defaulter.debtorcacertificate = mongoose.Types.ObjectId(
+          req.body.debtorcacertificate
+        );
       }
 
       if (req.body.debtoradditionaldocuments) {
-        defaulter.debtoradditionaldocuments = req.body.debtoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
+        defaulter.debtoradditionaldocuments =
+          req.body.debtoradditionaldocuments.map((doc) =>
+            mongoose.Types.ObjectId(doc)
+          );
       }
 
-
-      defaulter.isDocumentsRequiredByDebtor = false
+      defaulter.isDocumentsRequiredByDebtor = false;
 
       let replacements = [];
-      let mailObj = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_UPLOADED_DEBTOR, replacements)
-      mailObj.to = defaulter.debtor.customerEmail
-      let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(defaulter.debtor.gstin);
+      let mailObj = await mailController.getMailTemplate(
+        constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_UPLOADED_DEBTOR,
+        replacements
+      );
+      mailObj.to = defaulter.debtor.customerEmail;
+      let ccEmails = await debtorService.getDebtorAndCompanyOwnerEmails(
+        defaulter.debtor.gstin
+      );
       mailObj.cc = ccEmails;
-      mailUtility.sendMail(mailObj)
+      mailUtility.sendMail(mailObj);
 
       let existingLog = await Logs.findOne({ defaultId: defaulterId });
       // let logMsg = " [ "+new Date().toISOString()+" ] "+"Additional documents uploaded by Buyer";
-      let logMsg = { timeStamp: new Date().toISOString(), message: "Additional documents uploaded by Buyer" };
+      let logMsg = {
+        timeStamp: new Date().toISOString(),
+        message: "Additional documents uploaded by Buyer",
+      };
       if (existingLog) {
         // If the document exists, update the logs array
         existingLog.logs.push(logMsg);
@@ -1405,60 +1504,94 @@ exports.uploadSupportingDocuments = async (req, res) => {
       } else {
         // create log
         let log = await Logs.create({
-          defaultId: defaulterId,  // pmtHistory id
-          logs: [logMsg]
+          defaultId: defaulterId, // pmtHistory id
+          logs: [logMsg],
         });
       }
       if (req.body.token) {
-        let token = jwtUtil.verifyCustomToken(req.body.token)
-        await commonService.tokenService.deleteTokenFromDb({ "defaulterEntryId": token.tokenDetails.defaulterEntryId, "userType": "DEBTOR" });
+        let token = jwtUtil.verifyCustomToken(req.body.token);
+        await commonService.tokenService.deleteTokenFromDb({
+          defaulterEntryId: token.tokenDetails.defaulterEntryId,
+          userType: "DEBTOR",
+        });
       }
-    }
-    else if (req.body.type == "CREDITOR") {
-
+    } else if (req.body.type == "CREDITOR") {
       if (req.body.token) {
-        let token = jwtUtil.verifyCustomToken(req.body.token)
-        let dbToken = await commonService.tokenService.getTokenByPaymentIdAndUser({ "defaulterEntryId": token.tokenDetails.defaulterEntryId, "userType": "CREDITOR" });
+        let token = jwtUtil.verifyCustomToken(req.body.token);
+        let dbToken =
+          await commonService.tokenService.getTokenByPaymentIdAndUser({
+            defaulterEntryId: token.tokenDetails.defaulterEntryId,
+            userType: "CREDITOR",
+          });
         if (!dbToken) {
-          return res.status(403).json({ message: 'Token is not valid or has expired.', success: false, response: "" });
+          return res
+            .status(403)
+            .json({
+              message: "Token is not valid or has expired.",
+              success: false,
+              response: "",
+            });
         }
       }
 
       if (req.body.creditorcacertificate) {
-        defaulter.creditorcacertificate = mongoose.Types.ObjectId(req.body.creditorcacertificate)
+        defaulter.creditorcacertificate = mongoose.Types.ObjectId(
+          req.body.creditorcacertificate
+        );
       }
 
       if (req.body.creditoradditionaldocuments) {
-        defaulter.creditoradditionaldocuments = req.body.creditoradditionaldocuments.map(doc => mongoose.Types.ObjectId(doc));
+        defaulter.creditoradditionaldocuments =
+          req.body.creditoradditionaldocuments.map((doc) =>
+            mongoose.Types.ObjectId(doc)
+          );
       }
 
       for (let item of req.body.attachment) {
-        let invoices = defaulter.invoices
-        let invoice = invoices.find(obj => obj._id.toString() == item.invoiceId)
+        let invoices = defaulter.invoices;
+        let invoice = invoices.find(
+          (obj) => obj._id.toString() == item.invoiceId
+        );
         if (invoice) {
           if (item.purchaseOrderDocument)
-            invoice.purchaseOrderDocument = mongoose.Types.ObjectId(item.purchaseOrderDocument)
+            invoice.purchaseOrderDocument = mongoose.Types.ObjectId(
+              item.purchaseOrderDocument
+            );
           if (item.challanDocument)
-            invoice.challanDocument = mongoose.Types.ObjectId(item.challanDocument)
+            invoice.challanDocument = mongoose.Types.ObjectId(
+              item.challanDocument
+            );
           if (item.invoiceDocument)
-            invoice.invoiceDocument = mongoose.Types.ObjectId(item.invoiceDocument)
+            invoice.invoiceDocument = mongoose.Types.ObjectId(
+              item.invoiceDocument
+            );
           if (item.transportationDocument)
-            invoice.transportationDocument = mongoose.Types.ObjectId(item.transportationDocument)
-          await invoice.save()
+            invoice.transportationDocument = mongoose.Types.ObjectId(
+              item.transportationDocument
+            );
+          await invoice.save();
         }
       }
-      defaulter.isDocumentsRequiredByCreditor = false
+      defaulter.isDocumentsRequiredByCreditor = false;
 
-      let credMail = await userService.getCompanyOwner(defaulter.creditorCompanyId).select("emailId");
+      let credMail = await userService
+        .getCompanyOwner(defaulter.creditorCompanyId)
+        .select("emailId");
 
       let replacements = [];
-      let mailObj = await mailController.getMailTemplate(constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_UPLOADED_CREDITOR, replacements)
-      mailObj.to = credMail
-      mailUtility.sendMail(mailObj)
+      let mailObj = await mailController.getMailTemplate(
+        constants.MAIL_TEMPLATES.SUPPORTING_DOCUMENTS_UPLOADED_CREDITOR,
+        replacements
+      );
+      mailObj.to = credMail;
+      mailUtility.sendMail(mailObj);
 
       let existingLog = await Logs.findOne({ defaultId: defaulterId });
       // let logMsg = " [ "+new Date().toISOString()+" ] "+"Additional documents uploaded by Seller";
-      let logMsg = { timeStamp: new Date().toISOString(), message: "Additional documents uploaded by Seller" };
+      let logMsg = {
+        timeStamp: new Date().toISOString(),
+        message: "Additional documents uploaded by Seller",
+      };
       if (existingLog) {
         // If the document exists, update the logs array
         existingLog.logs.push(logMsg);
@@ -1466,18 +1599,24 @@ exports.uploadSupportingDocuments = async (req, res) => {
       } else {
         // create log
         let log = await Logs.create({
-          defaultId: defaulterId,  // pmtHistory id
-          logs: [logMsg]
+          defaultId: defaulterId, // pmtHistory id
+          logs: [logMsg],
         });
       }
       if (req.body.token) {
-        let token = jwtUtil.verifyCustomToken(req.body.token)
-        await commonService.tokenService.deleteTokenFromDb({ "defaulterEntryId": token.tokenDetails.defaulterEntryId, "userType": "CREDITOR" });
+        let token = jwtUtil.verifyCustomToken(req.body.token);
+        await commonService.tokenService.deleteTokenFromDb({
+          defaulterEntryId: token.tokenDetails.defaulterEntryId,
+          userType: "CREDITOR",
+        });
       }
     }
-    if (defaulter.isDocumentsRequiredByCreditor == false && defaulter.isDocumentsRequiredByDebtor == false) {
-      defaulter.latestStatus = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW
-      defaulter.pendingWith = defaulter.previousPendingWith
+    if (
+      defaulter.isDocumentsRequiredByCreditor == false &&
+      defaulter.isDocumentsRequiredByDebtor == false
+    ) {
+      defaulter.latestStatus = constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW;
+      defaulter.pendingWith = defaulter.previousPendingWith;
 
       const deftEnt = await DefaulterEntry.findByIdAndUpdate(defaulterId, {
         latestStatus: constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW,
@@ -1495,11 +1634,12 @@ exports.uploadSupportingDocuments = async (req, res) => {
            }
          } */
 
-
-
       let existingLog = await Logs.findOne({ defaultId: defaulterId });
       // let logMsg = " [ "+new Date().toISOString()+" ] "+"Case Pending with L1";
-      let logMsg = { timeStamp: new Date().toISOString(), message: `Case Pending with ${defaulter.pendingWith}` };
+      let logMsg = {
+        timeStamp: new Date().toISOString(),
+        message: `Case Pending with ${defaulter.pendingWith}`,
+      };
       if (existingLog) {
         // If the document exists, update the logs array
         existingLog.logs.push(logMsg);
@@ -1507,18 +1647,22 @@ exports.uploadSupportingDocuments = async (req, res) => {
       } else {
         // create log
         let log = await Logs.create({
-          defaultId: defaulterId,  // pmtHistory id
-          logs: [logMsg]
+          defaultId: defaulterId, // pmtHistory id
+          logs: [logMsg],
         });
       }
     }
     await defaulter.save();
 
-    return res.status(200).send({ message: "Successful upload", success: true, response: defaulter });
-
-
+    return res
+      .status(200)
+      .send({
+        message: "Successful upload",
+        success: true,
+        response: defaulter,
+      });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     res
       .status(500)
       .send({ message: "Something went wrong", reponse: "", success: false });
@@ -1527,19 +1671,27 @@ exports.uploadSupportingDocuments = async (req, res) => {
 
 exports.getTransactionByPaymentId = async (req, res) => {
   try {
-
     let transaction = await PaymentHistory.findOne({ _id: req.body.paymentId });
 
     if (transaction) {
-      res.status(200).json({ message: "Transaction fetched successfully.", success: true, response: transaction });
+      res
+        .status(200)
+        .json({
+          message: "Transaction fetched successfully.",
+          success: true,
+          response: transaction,
+        });
     } else {
-      res.status(403).json({ message: "Transaction not found.", success: true, response: transaction });
+      res
+        .status(403)
+        .json({
+          message: "Transaction not found.",
+          success: true,
+          response: transaction,
+        });
     }
-
   } catch (err) {
-    console.log(err)
-    res
-      .status(500)
-      .send({ message: "Something went wrong", success: false });
+    console.log(err);
+    res.status(500).send({ message: "Something went wrong", success: false });
   }
-}
+};
