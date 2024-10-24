@@ -775,7 +775,7 @@ exports.getAllComplainList = async function (adminRole, emailId, filters, reqSta
             ],
             $or: [
                 {
-                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW, constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NOT_UPLOADED] }
+                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW, constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NOT_UPLOADED, constants.PAYMENT_HISTORY_STATUS.DRAFT] }
                 },
             ]
         };
@@ -783,7 +783,7 @@ exports.getAllComplainList = async function (adminRole, emailId, filters, reqSta
         additionalFilters = {
             $or: [
                 {
-                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW, constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NOT_UPLOADED] }
+                    latestStatus: { $in: [constants.PAYMENT_HISTORY_STATUS.PENDING, constants.PAYMENT_HISTORY_STATUS.RE_OPENED, constants.PAYMENT_HISTORY_STATUS.AWAITING_REVIEW, constants.PAYMENT_HISTORY_STATUS.DOCUMENTS_NOT_UPLOADED,constants.PAYMENT_HISTORY_STATUS.DRAFT] }
                 },
                 { userSuspended: false }, { userSuspended: { $exists: false } }
             ],
