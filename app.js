@@ -111,6 +111,7 @@ require("./app/routes/admin/paymentHistory.routes")(app);
 require("./app/routes/common/fileUpload.routes")(app);
 require("./app/routes/common/logs.routes")(app);
 require("./app/routes/user/defaulterEntry.routes")(app);
+require("./app/routes/user/orderManagement.routes")(app);
 
 cron.schedule('*/10 * * * *', () => {
     console.log("datachaking on ");
