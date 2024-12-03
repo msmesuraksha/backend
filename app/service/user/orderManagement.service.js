@@ -81,3 +81,24 @@ exports.createOrderEntry = async function (OrderEntryList, debtor, status, purch
     return result;
 
 };
+
+
+
+exports.getOrderEntryData = function (condition, additionalFilters) {
+
+    if (!additionalFilters) {
+      additionalFilters = {}
+    }
+    return purchaseOrder.find({ ...condition, ...additionalFilters }).populate([
+      { path: 'orders' },
+      {
+        path: 'orders', populate: [
+          { path: 'orderDocuments' },
+        ]
+      },
+      {
+        path: 'debtor', populate: { path: 'ratings', populate: ['question'] }
+      },
+      { path: 'creditorCompanyId', model: 'company', populate: "companyOwner" }
+    ])
+  };
