@@ -11,7 +11,7 @@ module.exports = app => {
     // send bill
     router.post("/createPurchaseOrder", orderEntry.createPurchaseOrder);
     router.get("/getAllOrderCreateByMe", orderEntry.getAllOrderCreateByMe);
-    router.get("/getAllDefaultInvoicesRaisedByMe", defaulterEntry.getAllInvoicesRaisedByMe);
+    router.get("/getAllOrderSentToMe", orderEntry.getAllOrderSentToMe);
     router.post("/initiatePaymentVerification", defaulterEntry.initiatePaymentVerification);
     router.post("/initiatePaymentVerificationGeneral", defaulterEntry.initiatePaymentVerificationGeneral);
 

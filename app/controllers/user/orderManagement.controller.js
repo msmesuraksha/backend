@@ -72,11 +72,11 @@ exports.getAllOrderSentToMe = async (req, res) => {
             const statusFilter = {
                 $or: [
                     {
-                        latestStatus: { $nin: [constants.ORDER_HISTORY_STATUS.CANCELLED, constants.INVOICE_STATUS.DRAFT] }
+                        status: { $nin: [constants.ORDER_HISTORY_STATUS.CANCELLED] }
                     },
                 ],
             };
-            let entry = await defaulterEntryService.getCompleteDefaultEntryData({ debtor: element }, statusFilter);
+            let entry = await orderEntryService.getOrderEntryData({ debtor: element }, statusFilter);
 
             entry = entry.map(item => {
                 // Assuming you want to rename 'creditorCompanyId' to 'creditorCompanyDetails'
@@ -85,28 +85,6 @@ exports.getAllOrderSentToMe = async (req, res) => {
                 return item;
             });
 
-
-            // for (let i = 0; i < entry.length; i++) {
-            //     elem = entry[i]
-            //     elem = elem.toJSON()
-            //     // finding lowest duefrom date
-            //     for (let invoice of elem.invoices) {
-            //         if (elem.dueFrom) {
-            //             if (elem.dueFrom > invoice.dueDate) {
-            //                 elem.dueFrom = invoice.dueDate
-            //             }
-            //         } else {
-            //             elem.dueFrom = invoice.dueDate
-            //         }
-            //     }
-            //     elem.dueFrom = commonUtil.getDateInGeneralFormat(elem.dueFrom)
-
-            //     //finding totalAmount
-            //     // elem.totalAmount += Number(elem.totalAmount)
-            //     entry[i] = elem;
-            // }
-
-            // Use transformedResults
             defaulterEntries.push(...(entry));
         }
 
