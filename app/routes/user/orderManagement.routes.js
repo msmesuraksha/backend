@@ -12,6 +12,9 @@ module.exports = app => {
     router.post("/createPurchaseOrder", orderEntry.createPurchaseOrder);
     router.get("/getAllOrderCreateByMe", orderEntry.getAllOrderCreateByMe);
     router.get("/getAllOrderSentToMe", orderEntry.getAllOrderSentToMe);
+    router.post("/orderStatusUpdate", orderEntry.orderStatusUpdate);
+
+
     router.post("/initiatePaymentVerification", defaulterEntry.initiatePaymentVerification);
     router.post("/initiatePaymentVerificationGeneral", defaulterEntry.initiatePaymentVerificationGeneral);
 

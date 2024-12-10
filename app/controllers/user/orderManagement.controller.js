@@ -8,6 +8,7 @@ const DefaulterEntry = db.defaulterEntry;
 const Debtors = db.debtors;
 const DebtorRating = db.debtorRating;
 const PaymentHistory = admin_db.paymentHistory;
+const purchaseOrder = db.purchaseOrder;
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
 const constants = require('../../constants/userConstants');
@@ -130,6 +131,48 @@ exports.getAllOrderCreateByMe = async (req, res) => {
             .send({ message: "Something went wrong", success: false });
     }
 }
+
+exports.orderStatusUpdate = async (req, res) => {
+    try {
+        const updatedOrder = await purchaseOrder.findByIdAndUpdate(
+            req.body.orderEntryId,  // ID of the document to find
+            { status: req.body.status }, // Update object with the new status
+            { new: true } // Option to return the updated document
+        );
+        if (!updatedOrder) {
+            console.log("order id not found ", req.body.orderEntryId)
+            return res.status(409).send({ message: "Order not found", success: false, response: "" });
+        };
+
+        res.status(201).json({ message: "Order Entry updated successfully.", success: true, response: updatedOrder });
+    } catch (err) {
+        console.log(err)
+        res
+            .status(500)
+            .send({ message: "Something went wrong", success: false });
+    }
+};
+
+exports.updatePurchaseOrder = async (req, res) => {
+    try {
+        // Validate request
+        const orderEnt = await purchaseOrder.findOne({ _id: req.body.orderEntryId });
+        if (!orderEnt) {
+            console.log("order not found ", req.body.orderEntryId)
+            return res.status(409).send({ message: "order not found", success: false, response: "" });
+        };
+
+        const defaulterEntry = await orderEntryService.updateOrderEntry(req.body, req.token.companyDetails);
+
+        res.status(201).json({ message: "Defaulter Entry updated successfully.", success: true, response: defaulterEntry });
+    } catch (err) {
+        console.log(err)
+        res
+            .status(500)
+            .send({ message: "Something went wrong", success: false });
+    }
+
+};
 
 
 
