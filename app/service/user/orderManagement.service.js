@@ -5,6 +5,11 @@ const sendBillTransactionsService = require("./sendBillTransactions.service");
 const Documents = commondb.documents;
 
 const purchaseOrder = db.purchaseOrder;
+const purchaseOrderList = db.orderList
+
+const service = require("../../service/user");
+const orderEntryListService = service.orderEntryList;
+
 const defaulterEntry = db.defaulterEntry;
 const PaymentHistory = admin_db.paymentHistory;
 const Debtor = db.debtors;
@@ -121,109 +126,67 @@ exports.updateOrderEntry = async function (reqBody, creditorCompanyDetails) {
     return res.status(404).json({ message: "Main order not found" });
   }
 
-  let updatedInvoicesList = [];
+  let updatedOrderList = [];
 
   // const deftEntNew = await defaulterEntry.findById(reqBody.defaulterEntryId);
   // console.log(deftEntNew);
-  let invoicesList = reqBody.invoices
-  for (const invoiceRow of invoicesList) {
-    let existingInvoice;
+  let orderList = reqBody.orders
+  for (const orderRow of orderList) {
+    let existingOrder;
 
-    // Find existing invoice if it exists
-    if (invoiceRow._id) {
-      existingInvoice = deftEnt.invoices.find(invoice => invoice._id.toString() === invoiceRow._id);
+    if (orderRow._id) {
+      existingOrder = updatedMainSection.orders.find(order => order._id.toString() === orderRow._id);
     }
 
-    // If existing invoice found, update it
-    if (existingInvoice) {
-      // Update existing invoice
-      // Assuming you have a method updateInvoice in your service
+    if (existingOrder) {
 
-      let purchaseOrderDocument = null;
-      let challanDocument = null;
-      let invoiceDocument = null;
-      let transportationDocument = null;
-      let otherDocuments = null;
-      if (invoiceRow.purchaseOrderDocument) purchaseOrderDocument = await Documents.findById(invoiceRow.purchaseOrderDocument);
-      if (invoiceRow.challanDocument) challanDocument = await Documents.findById(invoiceRow.challanDocument);
-      if (invoiceRow.invoiceDocument) invoiceDocument = await Documents.findById(invoiceRow.invoiceDocument);
-      if (invoiceRow.transportationDocument) transportationDocument = await Documents.findById(invoiceRow.transportationDocument);
-      if (invoiceRow.otherDocuments) otherDocuments = await Documents.find({ _id: { $in: invoiceRow.otherDocuments } });
+      let orderDocuments = null;
+      if (orderRow.orderDocuments) orderDocuments = await Documents.find({ _id: { $in: orderRow.orderDocuments } });
 
-      sendB = await SendBillTransactions.findByIdAndUpdate(invoiceRow._id, {
-        billDate: invoiceRow.billDate,
-        billDescription: invoiceRow.billDescription,
-        billNumber: invoiceRow.billNumber,
-        creditAmount: invoiceRow.creditAmount,
-        remainingAmount: invoiceRow.creditAmount,
+      sendB = await purchaseOrderList.findByIdAndUpdate(orderRow._id, {
+        orderItemName: orderRow.orderItemName,
+        orderQuantity: orderRow.orderQuantity,
+        orderUnit: orderRow.orderUnit,
+        orderRate: orderRow.orderRate,
+        orderDescription: orderRow.orderDescription,
+        orderTaxes: orderRow.orderTaxes,
 
-        interestRate: invoiceRow.interestRate,
-        creditLimitDays: invoiceRow.creditLimitDays,
-        remark: invoiceRow.remark,
-        items: invoiceRow.items,
-        subTotal: invoiceRow.subTotal,
-        tax: invoiceRow.tax,
-
-        referenceNumber: invoiceRow.referenceNumber,
-        invoiceNumber: invoiceRow.invoiceNumber,
-        dueDate: invoiceRow.dueDate,
-        percentage: invoiceRow.percentage,
-
-        purchaseOrderDocument: purchaseOrderDocument,
-        challanDocument: challanDocument,
-        invoiceDocument: invoiceDocument,
-        transportationDocument: transportationDocument,
-        otherDocuments: otherDocuments
+        orderDocuments: orderDocuments
 
       });
-      deftEnt.totalAmount += Number(sendB.remainingAmount);
-      updatedInvoicesList.push(sendB);
+
+      updatedOrderList.push(sendB);
     } else {
-      let purchaseOrderDocument = null;
-      let challanDocument = null;
-      let invoiceDocument = null;
-      let transportationDocument = null;
-      let otherDocuments = null;
-      if (invoiceRow.purchaseOrderDocument) purchaseOrderDocument = await Documents.findById(invoiceRow.purchaseOrderDocument);
-      if (invoiceRow.challanDocument) challanDocument = await Documents.findById(invoiceRow.challanDocument);
-      if (invoiceRow.invoiceDocument) invoiceDocument = await Documents.findById(invoiceRow.invoiceDocument);
-      if (invoiceRow.transportationDocument) transportationDocument = await Documents.findById(invoiceRow.transportationDocument);
-      if (invoiceRow.otherDocuments) otherDocuments = await Documents.find({ _id: { $in: invoiceRow.otherDocuments } });
 
-      invoiceRow.purchaseOrderDocument = purchaseOrderDocument;
-      invoiceRow.challanDocument = challanDocument;
-      invoiceRow.invoiceDocument = invoiceDocument;
-      invoiceRow.transportationDocument = transportationDocument;
-      invoiceRow.otherDocuments = otherDocuments;
+      let orderDocuments = null;
 
+      if (orderRow.orderDocuments) orderDocuments = await Documents.find({ _id: { $in: orderRow.orderDocuments } });
+
+      orderRow.orderDocuments = orderDocuments;
 
       // If invoice does not exist, create new invoice
-      const newInvoice = await sendBillTransactionsService.createInvoice(invoiceRow, creditorCompanyDetails);
-      updatedInvoicesList.push(newInvoice);
-      deftEnt.totalAmount += Number(invoiceRow.remainingAmount);
+      const newInvoice = await orderEntryListService.createOrderList(orderRow, creditorCompanyDetails);
+      updatedOrderList.push(newInvoice);
+
     }
   }
   // Remove deleted invoices from existing defaulter entry
-  for (const invoice of deftEnt.invoices) {
-    const existsInUpdatedList = invoicesList.some(element => element._id === invoice._id.toString());
+  for (const order of updatedMainSection.orders) {
+    const existsInUpdatedList = orderList.some(element => element._id === order._id.toString());
     if (!existsInUpdatedList) {
-      // Delete the invoice from sendBillTransactions model
-      await SendBillTransactions.findByIdAndDelete(invoice._id);
+      // Delete the order from sendBillTransactions model
+      await purchaseOrderList.findByIdAndDelete(order._id);
     }
   }
 
-  // Update deftEnt.invoices after removing deleted invoices
-  deftEnt.invoices = updatedInvoicesList.map(invoice => invoice._id);
+  // Update updatedMainSection.orders after removing deleted orders
+  updatedMainSection.orders = updatedOrderList.map(order => order._id);
 
-  await deftEnt.save();
+  await updatedMainSection.save();
 
   return await defaulterEntry.findById(reqBody.defaulterEntryId).populate({
-    path: 'invoices', populate: [
-      'purchaseOrderDocument',
-      'challanDocument',
-      'invoiceDocument',
-      'transportationDocument',
-      'otherDocuments'
+    path: 'orders', populate: [
+      'orderDocuments'
     ]
   });
 

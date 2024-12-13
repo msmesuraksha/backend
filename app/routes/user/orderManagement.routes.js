@@ -13,6 +13,7 @@ module.exports = app => {
     router.get("/getAllOrderCreateByMe", orderEntry.getAllOrderCreateByMe);
     router.get("/getAllOrderSentToMe", orderEntry.getAllOrderSentToMe);
     router.post("/orderStatusUpdate", orderEntry.orderStatusUpdate);
+    router.post("/updatePurchaseOrder", orderEntry.updatePurchaseOrder);
 
 
     router.post("/initiatePaymentVerification", defaulterEntry.initiatePaymentVerification);
@@ -22,7 +23,6 @@ module.exports = app => {
     router.post("/defaultInvoicesById", defaulterEntry.defaultInvoicesById);
     router.post("/removeDefultingByInvoiceId", defaulterEntry.removeDefultingByInvoiceId);
     router.post("/deleteDefaulterEntryById", defaulterEntry.deleteDefaulterEntryById);
-    router.post("/updateDefaulterEntry", defaulterEntry.updateDefaulterEntry);
 
     app.use("/api/orderManagement", router);
 };
