@@ -40,7 +40,7 @@ exports.createPurchaseOrder = async (req, res) => {
 
         let debtorGstNumber = debtor.gstin
 
-        const purchaseOrderNumber = generateUniqueID(debtorGstNumber)
+        const purchaseOrderNumber = req.body.orderNumber
 
         for (const element of orders) {
             if (element.orderDocuments) element.orderDocuments = await Documents.find({ _id: { $in: element.orderDocuments } });

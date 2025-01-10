@@ -31,7 +31,6 @@ exports.defaultInvoiceById = function (invoiceId) {
 exports.createOrderList = async function (invoice, companyDetails) {
   let createdOrderLists = await orderList.create({
     debtorId: invoice.debtorId,
-    orderNumber: invoice.orderNumber,
     orderDate: invoice.orderDate,
     orderItemName: invoice.orderItemName,
     orderQuantity: invoice.orderQuantity,

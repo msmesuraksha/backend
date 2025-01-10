@@ -3,7 +3,6 @@ module.exports = mongoose => {
     var schema = mongoose.Schema({
         invoiceId: String,
         debtorId: String,
-        orderNumber: String,
         orderDate: String,
         orderItemName: String,
         orderQuantity: Number,
